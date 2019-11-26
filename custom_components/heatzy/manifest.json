@@ -1,0 +1,11 @@
+{
+  "domain": "heatzy",
+  "name": "Heatzy",
+  "config_flow": false,
+  "documentation": "https://www.home-assistant.io/components/livebox",
+  "requirements": [],
+  "dependencies": [],
+  "codeowners": [
+    "@devotics"
+  ]
+}
