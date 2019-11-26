@@ -27,7 +27,7 @@ class HeatzyPiloteV2Thermostat(ClimateDevice):
         self._device = device
 
     @property
-    def state(self) -> str:
+    def state(self):
         """Return the current state."""
         return self.preset_mode
         
