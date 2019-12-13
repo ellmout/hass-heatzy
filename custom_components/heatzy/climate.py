@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 from homeassistant.config_entries import SOURCE_IMPORT
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
@@ -18,6 +19,7 @@ PRODUCT_KEY_TO_DEVICE_IMPLEMENTATION = {
 
 _LOGGER = logging.getLogger(__name__)
 
+SCAN_INTERVAL = timedelta(seconds=30)
 
 async def async_setup_platform(hass, config, add_devices, discovery_info=None):
     """Configure Heatzy API using Home Assistant configuration and fetch all Heatzy devices."""
