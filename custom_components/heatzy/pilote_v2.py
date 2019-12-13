@@ -40,6 +40,11 @@ class HeatzyPiloteV2Thermostat(ClimateDevice):
         self._force_update = False
 
     @property
+    def state(self):
+        """Return the current state."""
+        return self.preset_mode
+        
+    @property
     def temperature_unit(self):
         """Return the unit of measurement used by the platform."""
         return TEMP_CELSIUS
