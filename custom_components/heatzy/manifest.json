@@ -1,8 +1,8 @@
 {
   "domain": "heatzy",
   "name": "Heatzy",
-  "config_flow": false,
-  "documentation": "https://www.home-assistant.io/components/livebox",
+  "config_flow": true,
+  "documentation": "https://www.home-assistant.io/components/heatzy",
   "requirements": [],
   "dependencies": [],
   "codeowners": [
