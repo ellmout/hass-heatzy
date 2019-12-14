@@ -43,7 +43,6 @@ class HeatzyPiloteV2Thermostat(ClimateDevice):
         """Init V2."""
         self._api = api
         self._heater = device
-        self.update = self._update
 
     @property
     def temperature_unit(self):
