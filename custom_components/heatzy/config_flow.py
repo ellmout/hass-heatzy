@@ -57,8 +57,7 @@ class HeatzyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 if devices is not None:
                     return await self.async_step_register()
 
-            except Exception as e:
-                _LOGGER.warn("Error to connect {}".format(e))
+            except Exception:
                 errors["base"] = "login_inccorect"
 
         # If there was no user input, do not show the errors.

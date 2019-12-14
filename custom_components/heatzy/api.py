@@ -66,6 +66,13 @@ class HeatzyAPI:
         device_data = await response.json()
         return device_data
 
+    async def async_get_device_info(self,device_id):
+        """Fetch information for device with given id."""
+        devices = await self.async_get_devices()
+        for device in devices:
+            if device["did"] == device_id:
+                return device
+
     async def async_control_device(self, device_id, payload):
         """Control state of device with given id."""
         token = await self._async_get_token()
