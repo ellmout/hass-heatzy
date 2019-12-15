@@ -43,6 +43,7 @@ class HeatzyPiloteV2Thermostat(ClimateDevice):
         """Init V2."""
         self._api = api
         self._heater = device
+        self._heater_detail = None
 
     @property
     def temperature_unit(self):
@@ -108,7 +109,7 @@ class HeatzyPiloteV2Thermostat(ClimateDevice):
 
         Requires SUPPORT_PRESET_MODE.
         """
-        return HEATZY_TO_HA_STATE.get(self._heater.get("attr").get("mode"))
+        return HEATZY_TO_HA_STATE.get(self._heater_detail.get("attr").get("mode"))
 
     async def async_set_preset_mode(self, preset_mode):
         """Set new preset mode."""
@@ -140,4 +141,4 @@ class HeatzyPiloteV2Thermostat(ClimateDevice):
     async def async_update(self):
         """Get the latest state from the thermostat."""
         _LOGGER.debug("Update {}".format(self.name))
-        self._heater = await self._api.async_get_device_info(self.unique_id)
+        self._heater_detail = await self._api.async_get_device(self.unique_id)

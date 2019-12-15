@@ -4,16 +4,9 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
-from homeassistant.helpers import aiohttp_client, storage
 
-from .api import HeatzyAPI
-from .authenticator import HeatzyAuthenticator
-from .const import (
-    DOMAIN,
-    STORAGE_KEY,
-    STORAGE_VERSION,
-)
-
+from heatzypy import HeatzyClient
+from .const import DOMAIN
 
 DATA_SCHEMA = vol.Schema(
     {vol.Required(CONF_USERNAME): str, vol.Required(CONF_PASSWORD): str}
@@ -46,13 +39,7 @@ class HeatzyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             self.password = user_input[CONF_PASSWORD]
 
             try:
-                # ~ session = requests.session()
-                session = aiohttp_client.async_get_clientsession(self.hass)
-                store = storage.Store(self.hass, STORAGE_VERSION, STORAGE_KEY)
-                authenticator = HeatzyAuthenticator(
-                    session, store, self.username, self.password
-                )
-                api = HeatzyAPI(session, authenticator)
+                api = HeatzyClient(self.username, self.password)
                 devices = await api.async_get_devices()
                 if devices is not None:
                     return await self.async_step_register()

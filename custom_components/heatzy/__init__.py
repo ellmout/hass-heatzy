@@ -5,15 +5,9 @@ import voluptuous as vol
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
 from homeassistant.helpers import config_validation as cv
 from homeassistant.config_entries import SOURCE_IMPORT
-from homeassistant.helpers import aiohttp_client, storage
 
-from .api import HeatzyAPI
-from .authenticator import HeatzyAuthenticator
-from .const import (
-    DOMAIN,
-    STORAGE_KEY,
-    STORAGE_VERSION,
-)
+from heatzypy import HeatzyClient
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,12 +42,7 @@ async def async_setup_entry(hass, config_entry):
     """Set up Heatzy as config entry."""
 
     if config_entry.data is not None:
-        session = aiohttp_client.async_get_clientsession(hass)
-        store = storage.Store(hass, STORAGE_VERSION, STORAGE_KEY)
-        authenticator = HeatzyAuthenticator(
-            session, store, config_entry.data["username"], config_entry.data["password"]
-        )
-        api = HeatzyAPI(session, authenticator)
+        api = HeatzyClient(config_entry.data["username"], config_entry.data["password"])
         devices = await api.async_get_devices()
         if devices is not None:
             hass.async_create_task(
