@@ -1,9 +1,9 @@
-# Cozytouch
+# Heatzy
 This a *custom component* for [Home Assistant](https://www.home-assistant.io/). 
 
+With Heatzy, control all your heating systems from anywhere, via your smartphone
 
 There is currently support for the following device types within Home Assistant:
-
 * [Climate sensor](#sensor) with preset mode
 
 
