@@ -1,0 +1,6 @@
+{
+  "name": "Heatzy",
+  "country": "FR",
+  "domains": ["climate"],
+  "homeassistant": "0.99.9"
+}
