@@ -1,8 +1,7 @@
 """API for PiloteV2."""
 import asyncio
-import logging
 from datetime import timedelta
-
+import logging
 
 from homeassistant.components.climate import ClimateDevice
 from homeassistant.components.climate.const import (
@@ -18,7 +17,6 @@ from homeassistant.const import TEMP_CELSIUS
 from homeassistant.util import Throttle
 
 from .const import DOMAIN
-
 
 HEATZY_TO_HA_STATE = {
     "cft": PRESET_COMFORT,
