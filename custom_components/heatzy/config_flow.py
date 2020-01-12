@@ -1,11 +1,12 @@
 """Config flow to configure Heatzy."""
 import logging
+
+from heatzypy import HeatzyClient
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 
-from heatzypy import HeatzyClient
 from .const import DOMAIN
 
 DATA_SCHEMA = vol.Schema(
