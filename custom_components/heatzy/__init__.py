@@ -25,14 +25,15 @@ CONFIG_SCHEMA = vol.Schema(
 )
 
 
-async def async_setup(hass, config_entry):
+async def async_setup(hass, config):
     """Load configuration for Heatzy component."""
+    if DOMAIN not in config_entry:
+        return True
 
     if not hass.config_entries.async_entries(DOMAIN) and DOMAIN in config_entry:
-        heatzy_config = config_entry[DOMAIN]
         hass.async_create_task(
             hass.config_entries.flow.async_init(
-                DOMAIN, context={"source": SOURCE_IMPORT}, data=heatzy_config
+                DOMAIN, context={"source": SOURCE_IMPORT}, data=config[DOMAIN]
             )
         )
 
