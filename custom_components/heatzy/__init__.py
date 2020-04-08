@@ -27,7 +27,7 @@ CONFIG_SCHEMA = vol.Schema(
 
 async def async_setup(hass, config):
     """Load configuration for Heatzy component."""
-    if DOMAIN not in config_entry:
+    if DOMAIN not in config:
         return True
 
     if not hass.config_entries.async_entries(DOMAIN) and DOMAIN in config_entry:
