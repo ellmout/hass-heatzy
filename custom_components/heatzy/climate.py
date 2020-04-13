@@ -1,10 +1,7 @@
 """Climate sensors for Heatzy."""
 import logging
 
-from heatzypy import HeatzyClient
-
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
-
+from .const import DOMAIN, HEATZY_API, HEATZY_DEVICES
 from .pilote_v1 import HeatzyPiloteV1Thermostat
 from .pilote_v2 import HeatzyPiloteV2Thermostat
 
@@ -22,13 +19,11 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Configure Heatzy API using Home Assistant configuration and fetch all Heatzy devices."""
-    username = config_entry.data.get(CONF_USERNAME)
-    password = config_entry.data.get(CONF_PASSWORD)
 
-    api = HeatzyClient(username, password)
-    devices = await api.async_get_devices()
-    heaters = filter(None.__ne__, map(setup_heatzy_device(api), devices))
+    heatzy_devices = hass.data[DOMAIN][HEATZY_DEVICES]
+    api = hass.data[DOMAIN][HEATZY_API]
 
+    heaters = filter(None.__ne__, map(setup_heatzy_device(api), heatzy_devices))
     devices = []
     for heater in heaters:
         devices.append(heater)
