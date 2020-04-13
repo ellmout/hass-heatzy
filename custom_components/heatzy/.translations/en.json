@@ -1,26 +1,14 @@
 {
-  "config": {
-    "title": "Heatzy",
-    "step": {
-      "user": {
-        "title": "Register your heatzy account",
-        "data": {
-          "username": "Username",
-          "password": "Password"
+    "config": {
+        "title": "Heatzy",
+        "step": {
+            "user": {
+                "title": "Register your heatzy account",
+                "data": {"username": "Username", "password": "Password"}
+            }
+        },
+        "error": {
+            "unknown": "Unknown error occurred"
         }
-      },
-      "register": {
-          "title": "Heatzy",
-	  "description":"Register heatzy."
-      }
-    },
-    "error": {
-      "login_inccorect": "User or password inccorect",
-      "linking": "Unknown linking error occurred."
-    },
-    "abort": {
-      "unknown": "Unknown error occurred",
-      "cannot_connect": "Unable to connect to the heatzy."
     }
-  }
 }

@@ -1,0 +1,14 @@
+{
+    "config": {
+        "title": "Heatzy",
+        "step": {
+            "user": {
+                "title": "Délcaration du compte Heatzy.",
+                "data": {"username": "Email", "password": "Mot de passe"}
+            }
+        },
+        "error": {
+            "unknown": "Une erreur inconnue s'est produite"
+        }
+    }
+}
