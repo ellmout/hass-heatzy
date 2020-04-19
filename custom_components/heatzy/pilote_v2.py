@@ -117,8 +117,10 @@ class HeatzyPiloteV2Thermostat(ClimateDevice):
 
     async def async_set_preset_mode(self, preset_mode):
         """Set new preset mode."""
-        await self._api.async_control_device(
-            self.unique_id, {"attrs": {"mode": HA_TO_HEATZY_STATE.get(preset_mode)}}
+        await self.hass.async_add_executor_job(
+            self._api.control_device,
+            self.unique_id, 
+            {"attrs": {"mode": HA_TO_HEATZY_STATE.get(preset_mode)}}
         )
         await self.async_update_heater(True)
 
@@ -142,7 +144,7 @@ class HeatzyPiloteV2Thermostat(ClimateDevice):
         if force_update is True:
             # Updated temperature to HA state to avoid flapping (API confirmation is slow)
             await asyncio.sleep(1)
-        data_status = await self._api.async_get_device(self.unique_id)
+        data_status = await self.hass.async_add_executor_job(self._api.get_device, self.unique_id)
         if data_status:
             self._heater_detail = data_status
 

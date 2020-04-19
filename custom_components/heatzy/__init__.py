@@ -65,7 +65,7 @@ async def async_connect_heatzy(hass, data):
     """Connect to heatzy."""
     try:
         api = HeatzyClient(data[CONF_USERNAME], data[CONF_PASSWORD])
-        devices = await api.async_get_devices()
+        devices = await hass.async_add_executor_job(api.get_devices)
         if devices is not None:
             hass.data[DOMAIN] = {HEATZY_API: api, HEATZY_DEVICES: devices}
     except HeatzyException as e:
