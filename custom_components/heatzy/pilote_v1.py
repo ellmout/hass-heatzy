@@ -120,7 +120,7 @@ class HeatzyPiloteV1Thermostat(ClimateEntity):
             self._api.control_device,
             self.unique_id,
             {"raw": HA_TO_HEATZY_STATE.get(preset_mode)}
-        )       
+        )
         await self.async_update_heater(True)
 
     async def async_set_hvac_mode(self, hvac_mode):
