@@ -72,7 +72,6 @@ class HeatzyPiloteV2Thermostat(ClimateEntity):
     @property
     def device_info(self):
         """Return the device info."""
-
         return {
             "name": self.name,
             "identifiers": {(DOMAIN, self.unique_id)},
@@ -119,7 +118,7 @@ class HeatzyPiloteV2Thermostat(ClimateEntity):
         """Set new preset mode."""
         await self.hass.async_add_executor_job(
             self._api.control_device,
-            self.unique_id, 
+            self.unique_id,
             {"attrs": {"mode": HA_TO_HEATZY_STATE.get(preset_mode)}}
         )
         await self.async_update_heater(True)
