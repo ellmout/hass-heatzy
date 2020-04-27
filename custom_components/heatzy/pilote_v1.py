@@ -3,7 +3,7 @@ import asyncio
 from datetime import timedelta
 import logging
 
-from homeassistant.components.climate import ClimateDevice
+from homeassistant.components.climate import ClimateEntity
 from homeassistant.components.climate.const import (
     HVAC_MODE_HEAT,
     HVAC_MODE_OFF,
@@ -40,7 +40,7 @@ _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(minutes=5)
 
 
-class HeatzyPiloteV1Thermostat(ClimateDevice):
+class HeatzyPiloteV1Thermostat(ClimateEntity):
     """Heaty Pilote v1."""
 
     def __init__(self, api, device):
