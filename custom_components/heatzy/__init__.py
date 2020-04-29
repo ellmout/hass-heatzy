@@ -69,6 +69,5 @@ async def async_connect_heatzy(hass, data):
         if devices is not None:
             hass.data[DOMAIN] = {HEATZY_API: api, HEATZY_DEVICES: devices}
     except HeatzyException as e:
-        desc, err = e.args
-        _LOGGER.error(f"Error: {desc} ({err})")
+        _LOGGER.error(f"Error: %s", e)
         raise HeatzyException(e)
