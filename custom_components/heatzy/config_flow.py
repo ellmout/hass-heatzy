@@ -23,7 +23,6 @@ async def validate_input(hass: core.HomeAssistant, data):
 
     Data has the keys from DATA_SCHEMA with values provided by the user.
     """
-
     return await async_connect_heatzy(hass, data)
 
 
@@ -39,7 +38,6 @@ class HeatzyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None):
         """Handle a flow initialized by the user."""
-
         errors = {}
         if user_input is not None:
             try:
