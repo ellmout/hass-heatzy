@@ -1,18 +1,16 @@
 """API for PiloteV1."""
 import asyncio
-from datetime import timedelta
 import logging
+from datetime import timedelta
+
+from heatzypy.exception import HeatzyException
 
 from homeassistant.components.climate import ClimateDevice
-from homeassistant.components.climate.const import (
-    HVAC_MODE_HEAT,
-    HVAC_MODE_OFF,
-    PRESET_AWAY,
-    PRESET_COMFORT,
-    PRESET_ECO,
-    PRESET_NONE,
-    SUPPORT_PRESET_MODE,
-)
+from homeassistant.components.climate.const import (HVAC_MODE_HEAT,
+                                                    HVAC_MODE_OFF, PRESET_AWAY,
+                                                    PRESET_COMFORT, PRESET_ECO,
+                                                    PRESET_NONE,
+                                                    SUPPORT_PRESET_MODE)
 from homeassistant.const import TEMP_CELSIUS
 from homeassistant.util import Throttle
 
@@ -48,6 +46,7 @@ class HeatzyPiloteV1Thermostat(ClimateDevice):
         self._api = api
         self._heater = device
         self._heater_detail = {}
+        self._available = True
 
     @property
     def temperature_unit(self):
@@ -68,6 +67,11 @@ class HeatzyPiloteV1Thermostat(ClimateDevice):
     def name(self):
         """Return a name."""
         return self._heater.get("dev_alias")
+
+    @property
+    def available(self):
+        """Return True if entity is available."""
+        return self._available
 
     @property
     def device_info(self):
@@ -144,9 +148,13 @@ class HeatzyPiloteV1Thermostat(ClimateDevice):
         if force_update is True:
             # Updated temperature to HA state to avoid flapping (API confirmation is slow)
             await asyncio.sleep(1)
-        data_status = await self.hass.async_add_executor_job(self._api.get_device, self.unique_id)
-        if data_status:
-            self._heater_detail = data_status
+        try:
+            data_status = await self.hass.async_add_executor_job(self._api.get_device, self.unique_id)
+            if data_status:
+                self._heater_detail = data_status
+        except HeatzyException:
+            _LOGGER.error("Device data no retrieve {}".format(self.name))
+            self.available = False
 
     @Throttle(SCAN_INTERVAL)
     async def async_update(self):
