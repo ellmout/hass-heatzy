@@ -2,7 +2,7 @@
 import logging
 
 from heatzypy import HeatzyClient
-from heatzypy.exception import HeatzyException
+from heatzypy.exception import HeatzyException, HttpRequestFailed
 import voluptuous as vol
 
 from homeassistant.config_entries import SOURCE_IMPORT
@@ -68,6 +68,9 @@ async def async_connect_heatzy(hass, data):
         devices = await hass.async_add_executor_job(api.get_devices)
         if devices is not None:
             hass.data[DOMAIN] = {HEATZY_API: api, HEATZY_DEVICES: devices}
+    except HttpRequestFailed as e:
+        _LOGGER.error("Error: %s", e)
+        raise HeatzyException(e)
     except HeatzyException as e:
-        _LOGGER.error(f"Error: %s", e)
+        _LOGGER.error("Error: %s", e)
         raise HeatzyException(e)

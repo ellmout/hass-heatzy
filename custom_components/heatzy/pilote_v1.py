@@ -45,7 +45,7 @@ class HeatzyPiloteV1Thermostat(ClimateDevice):
         """Init V1."""
         self._api = api
         self._heater = device
-        self._heater_detail = {}
+        self._heater_data = {}
         self._available = True
 
     @property
@@ -116,20 +116,22 @@ class HeatzyPiloteV1Thermostat(ClimateDevice):
 
         Requires SUPPORT_PRESET_MODE.
         """
-        return HEATZY_TO_HA_STATE.get(self._heater_detail.get("attr", {}).get("mode"))
+        return HEATZY_TO_HA_STATE.get(self._heater_data.get("attr", {}).get("mode"))
 
     async def async_set_preset_mode(self, preset_mode):
         """Set new preset mode."""
-        await self.hass.async_add_executor_job(
-            self._api.control_device,
-            self.unique_id,
-            {"raw": HA_TO_HEATZY_STATE.get(preset_mode)}
-        )
+        try:
+            await self.hass.async_add_executor_job(
+                self._api.control_device,
+                self.unique_id,
+                {"raw": HA_TO_HEATZY_STATE.get(preset_mode)}
+            )
+        except HeatzyException as e:
+            _LOGGER.error("Error to set preset mode : {}".format(e))
         await self.async_update_heater(True)
 
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new hvac mode."""
-        _LOGGER.debug(f"Set HVAC MODE {hvac_mode}")
         if hvac_mode == HVAC_MODE_OFF:
             await self.async_turn_off()
         elif hvac_mode == HVAC_MODE_HEAT:
@@ -151,10 +153,11 @@ class HeatzyPiloteV1Thermostat(ClimateDevice):
         try:
             data_status = await self.hass.async_add_executor_job(self._api.get_device, self.unique_id)
             if data_status:
-                self._heater_detail = data_status
+                self._heater_data = data_status
+                self._available = True
         except HeatzyException:
             _LOGGER.error("Device data no retrieve {}".format(self.name))
-            self.available = False
+            self._available = False
 
     @Throttle(SCAN_INTERVAL)
     async def async_update(self):

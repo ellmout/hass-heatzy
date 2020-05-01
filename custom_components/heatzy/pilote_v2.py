@@ -120,11 +120,14 @@ class HeatzyPiloteV2Thermostat(ClimateDevice):
 
     async def async_set_preset_mode(self, preset_mode):
         """Set new preset mode."""
-        await self.hass.async_add_executor_job(
-            self._api.control_device,
-            self.unique_id,
-            {"attrs": {"mode": HA_TO_HEATZY_STATE.get(preset_mode)}}
-        )
+        try:
+            await self.hass.async_add_executor_job(
+                self._api.control_device,
+                self.unique_id,
+                {"attrs": {"mode": HA_TO_HEATZY_STATE.get(preset_mode)}}
+            )
+        except HeatzyException as e:
+            _LOGGER.error("Error to set preset mode : {}".format(e))
         await self.async_update_heater(True)
 
     async def async_set_hvac_mode(self, hvac_mode):
@@ -151,9 +154,10 @@ class HeatzyPiloteV2Thermostat(ClimateDevice):
             data_status = await self.hass.async_add_executor_job(self._api.get_device, self.unique_id)
             if data_status:
                 self._heater_detail = data_status
+                self._available = True
         except HeatzyException:
             _LOGGER.error("Device data no retrieve {}".format(self.name))
-            self.available = False
+            self._available = False
 
     @Throttle(SCAN_INTERVAL)
     async def async_update(self):
