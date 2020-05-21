@@ -5,12 +5,16 @@ from datetime import timedelta
 
 from heatzypy.exception import HeatzyException
 
-from homeassistant.components.climate import ClimateDevice
-from homeassistant.components.climate.const import (HVAC_MODE_HEAT,
-                                                    HVAC_MODE_OFF, PRESET_AWAY,
-                                                    PRESET_COMFORT, PRESET_ECO,
-                                                    PRESET_NONE,
-                                                    SUPPORT_PRESET_MODE)
+from homeassistant.components.climate import ClimateEntity
+from homeassistant.components.climate.const import (
+    HVAC_MODE_HEAT,
+    HVAC_MODE_OFF,
+    PRESET_AWAY,
+    PRESET_COMFORT,
+    PRESET_ECO,
+    PRESET_NONE,
+    SUPPORT_PRESET_MODE,
+)
 from homeassistant.const import TEMP_CELSIUS
 from homeassistant.util import Throttle
 
@@ -38,7 +42,7 @@ _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(minutes=5)
 
 
-class HeatzyPiloteV2Thermostat(ClimateDevice):
+class HeatzyPiloteV2Thermostat(ClimateEntity):
     """Heaty Pilote v2."""
 
     def __init__(self, api, device):
@@ -124,7 +128,7 @@ class HeatzyPiloteV2Thermostat(ClimateDevice):
             await self.hass.async_add_executor_job(
                 self._api.control_device,
                 self.unique_id,
-                {"attrs": {"mode": HA_TO_HEATZY_STATE.get(preset_mode)}}
+                {"attrs": {"mode": HA_TO_HEATZY_STATE.get(preset_mode)}},
             )
         except HeatzyException as e:
             _LOGGER.error("Error to set preset mode : {}".format(e))
@@ -151,7 +155,9 @@ class HeatzyPiloteV2Thermostat(ClimateDevice):
             # Updated temperature to HA state to avoid flapping (API confirmation is slow)
             await asyncio.sleep(1)
         try:
-            data_status = await self.hass.async_add_executor_job(self._api.get_device, self.unique_id)
+            data_status = await self.hass.async_add_executor_job(
+                self._api.get_device, self.unique_id
+            )
             if data_status:
                 self._heater_detail = data_status
                 self._available = True
