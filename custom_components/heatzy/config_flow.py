@@ -42,8 +42,9 @@ class HeatzyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 await validate_input(self.hass, user_input)
-            except HeatzyException:
+            except HeatzyException as e:
                 errors["base"] = "unknown"
+                _LOGGER.error("Error: %s", e)
 
             if "base" not in errors:
                 return self.async_create_entry(title=DOMAIN, data=user_input)
