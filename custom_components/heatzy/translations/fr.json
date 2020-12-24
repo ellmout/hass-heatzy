@@ -8,7 +8,7 @@
             }
         },
         "error": {
-            "unknown": "Une erreur inconnue s'est produite"
+            "cannot_connect": "Une erreur inconnue s'est produite"
         }
     }
 }
