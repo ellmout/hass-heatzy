@@ -34,10 +34,10 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     api = hass.data[DOMAIN][HEATZY_API]
     devices = []
     for device in heatzy_devices:
-        PRODUCT_KEY = device.get("product_key")
-        if PRODUCT_KEY in PILOTEV1:
+        product_key = device.get("product_key")
+        if product_key in PILOTEV1:
             devices.append(HeatzyPiloteV1Thermostat(api, device))
-        elif PRODUCT_KEY in PILOTEV2:
+        elif product_key in PILOTEV2:
             devices.append(HeatzyPiloteV2Thermostat(api, device))
     async_add_entities(devices, True)
 
@@ -142,7 +142,7 @@ class HeatzyThermostat(ClimateEntity):
                 self._heater_data = data_status
                 self._available = True
         except HeatzyException:
-            _LOGGER.error("Device data no retrieve {}".format(self.name))
+            _LOGGER.error("Device data no retrieve %s", self.name)
             self._available = False
 
     @Throttle(SCAN_INTERVAL)
@@ -185,8 +185,8 @@ class HeatzyPiloteV1Thermostat(HeatzyThermostat):
                 self.unique_id,
                 {"raw": self.HA_TO_HEATZY_STATE.get(preset_mode)},
             )
-        except HeatzyException as e:
-            _LOGGER.error("Error to set preset mode : {}".format(e))
+        except HeatzyException as error:
+            _LOGGER.error("Error to set preset mode : %s", error)
         await self.async_update_heater(True)
 
 
@@ -225,6 +225,6 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
                 self.unique_id,
                 {"attrs": {"mode": self.HA_TO_HEATZY_STATE.get(preset_mode)}},
             )
-        except HeatzyException as e:
-            _LOGGER.error("Error to set preset mode : {}".format(e))
+        except HeatzyException as error:
+            _LOGGER.error("Error to set preset mode : %s", error)
         await self.async_update_heater(True)

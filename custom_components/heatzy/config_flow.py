@@ -5,7 +5,7 @@ from heatzypy.exception import HeatzyException
 
 import voluptuous as vol
 
-from homeassistant import config_entries, core
+from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 
 from . import async_connect_heatzy
@@ -16,14 +16,6 @@ DATA_SCHEMA = vol.Schema(
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-
-async def validate_input(hass: core.HomeAssistant, data):
-    """Validate the user input allows us to connect.
-
-    Data has the keys from DATA_SCHEMA with values provided by the user.
-    """
-    return await async_connect_heatzy(hass, data)
 
 
 class HeatzyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
@@ -41,10 +33,9 @@ class HeatzyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             try:
-                await validate_input(self.hass, user_input)
-            except HeatzyException as e:
-                errors["base"] = "unknown"
-                _LOGGER.error("Error: %s", e)
+                await async_connect_heatzy(self.hass, user_input)
+            except HeatzyException:
+                errors["base"] = "cannot_connect"
 
             if "base" not in errors:
                 return self.async_create_entry(title=DOMAIN, data=user_input)

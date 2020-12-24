@@ -1,15 +1,16 @@
 """Heatzy platform configuration."""
 import logging
 
+import voluptuous as vol
 from heatzypy import HeatzyClient
 from heatzypy.exception import HeatzyException, HttpRequestFailed
-import voluptuous as vol
-
+from homeassistant import exceptions
 from homeassistant.config_entries import SOURCE_IMPORT
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.helpers import config_validation as cv
+from homeassistant.components.climate import DOMAIN as CLIM_DOMAIN
 
-from .const import DOMAIN, HEATZY_DEVICES, HEATZY_API
+from .const import DOMAIN, HEATZY_API, HEATZY_DEVICES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,12 +44,13 @@ async def async_setup(hass, config):
 
 async def async_setup_entry(hass, config_entry):
     """Set up Heatzy as config entry."""
-    if config_entry.data is None:
-        return False
+    try:
+        await async_connect_heatzy(hass, config_entry.data)
+    except HeatzyException as error:
+        raise exceptions.ConfigEntryNotReady from error
 
-    await async_connect_heatzy(hass, config_entry.data)
     hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(config_entry, "climate")
+        hass.config_entries.async_forward_entry_setup(config_entry, CLIM_DOMAIN)
     )
     return True
 
@@ -56,7 +58,7 @@ async def async_setup_entry(hass, config_entry):
 async def async_unload_entry(hass, config_entry):
     """Unload a config entry."""
     hass.async_create_task(
-        hass.config_entries.async_forward_entry_unload(config_entry, "climate")
+        hass.config_entries.async_forward_entry_unload(config_entry, CLIM_DOMAIN)
     )
     return True
 
@@ -68,9 +70,6 @@ async def async_connect_heatzy(hass, data):
         devices = await hass.async_add_executor_job(api.get_devices)
         if devices is not None:
             hass.data[DOMAIN] = {HEATZY_API: api, HEATZY_DEVICES: devices}
-    except HttpRequestFailed as e:
-        _LOGGER.error("Error: %s", e)
-        raise HeatzyException(e)
-    except HeatzyException as e:
-        _LOGGER.error("Error: %s", e)
-        raise HeatzyException(e)
+    except (HttpRequestFailed, HeatzyException) as error:
+        _LOGGER.error(error)
+        raise HeatzyException from error
