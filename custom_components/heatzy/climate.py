@@ -17,7 +17,7 @@ from homeassistant.components.climate.const import (
 from homeassistant.const import TEMP_CELSIUS
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, PILOTEV1, PILOTEV2, ELEC_PRO_SOC
+from .const import DOMAIN, PILOTEV1, PILOTEV2, ELEC_PRO_SOC, GLOW
 
 MODE_LIST = [HVAC_MODE_HEAT, HVAC_MODE_OFF]
 PRESET_LIST = [PRESET_NONE, PRESET_COMFORT, PRESET_ECO, PRESET_AWAY]
