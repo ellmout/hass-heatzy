@@ -18,7 +18,7 @@ from homeassistant.components.climate.const import (
 from homeassistant.const import TEMP_CELSIUS
 from homeassistant.util import Throttle
 
-from .const import DOMAIN, HEATZY_API, HEATZY_DEVICES, PILOTEV1, PILOTEV2
+from .const import DOMAIN, HEATZY_API, HEATZY_DEVICES, PILOTEV1, PILOTEV2, GLOW
 
 MODE_LIST = [HVAC_MODE_HEAT, HVAC_MODE_OFF]
 PRESET_LIST = [PRESET_NONE, PRESET_COMFORT, PRESET_ECO, PRESET_AWAY]
