@@ -37,6 +37,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         product_key = device.get("product_key")
         if product_key in PILOTEV1:
             devices.append(HeatzyPiloteV1Thermostat(api, device))
+        if product_key in GLOW:
+            devices.append(HeatzyGlow(api, device))
         elif product_key in PILOTEV2:
             devices.append(HeatzyPiloteV2Thermostat(api, device))
     async_add_entities(devices, True)
@@ -228,3 +230,42 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
         except HeatzyException as error:
             _LOGGER.error("Error to set preset mode : %s", error)
         await self.async_update_heater(True)
+
+class HeatzyGlow(HeatzyThermostat):
+    """Heaty Glow."""
+
+    HEATZY_TO_HA_STATE = {
+        "cft": PRESET_COMFORT,
+        "eco": PRESET_ECO,
+        "fro": PRESET_AWAY,
+        "stop": PRESET_NONE,
+    }
+
+    HA_TO_HEATZY_STATE = {
+        PRESET_COMFORT: "cft",
+        PRESET_ECO: "eco",
+        PRESET_AWAY: "fro",
+        PRESET_NONE: "stop",
+    }
+
+    @property
+    def preset_mode(self):
+        """Return the current preset mode, e.g., home, away, temp.
+
+        Requires SUPPORT_PRESET_MODE.
+        """
+        return self.HEATZY_TO_HA_STATE.get(
+            self._heater_data.get("attr", {}).get("mode")
+        )
+
+    async def async_set_preset_mode(self, preset_mode):
+        """Set new preset mode."""
+        try:
+            await self.hass.async_add_executor_job(
+                self._api.control_device,
+                self.unique_id,
+                {"attrs": {"mode": self.HA_TO_HEATZY_STATE.get(preset_mode)}},
+            )
+        except HeatzyException as error:
+            _LOGGER.error("Error to set preset mode : %s", error)
+        await self.async_update_heater(True)        
