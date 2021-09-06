@@ -1,53 +1,31 @@
 """Heatzy platform configuration."""
+from datetime import timedelta
 import logging
 
-import voluptuous as vol
+import async_timeout
 from heatzypy import HeatzyClient
 from heatzypy.exception import HeatzyException, HttpRequestFailed
-from homeassistant import exceptions
-from homeassistant.config_entries import SOURCE_IMPORT
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
-from homeassistant.helpers import config_validation as cv
-from homeassistant.components.climate import DOMAIN as CLIM_DOMAIN
 
-from .const import DOMAIN, HEATZY_API, HEATZY_DEVICES
+from homeassistant.components.climate.const import DOMAIN as CLIM_DOMAIN
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.debounce import Debouncer
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+
+from .const import DEBOUNCE_COOLDOWN, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
-
-CONFIG_SCHEMA = vol.Schema(
-    {
-        DOMAIN: vol.Schema(
-            {
-                vol.Required(CONF_USERNAME): cv.string,
-                vol.Required(CONF_PASSWORD): cv.string,
-            }
-        )
-    },
-    extra=vol.ALLOW_EXTRA,
-)
-
-
-async def async_setup(hass, config):
-    """Load configuration for Heatzy component."""
-    hass.data.setdefault(DOMAIN, {})
-    if DOMAIN not in config:
-        return True
-
-    if not hass.config_entries.async_entries(DOMAIN):
-        hass.async_create_task(
-            hass.config_entries.flow.async_init(
-                DOMAIN, context={"source": SOURCE_IMPORT}, data=config[DOMAIN]
-            )
-        )
-    return True
+UPDATE_INTERVAL = timedelta(minutes=1)
 
 
 async def async_setup_entry(hass, config_entry):
     """Set up Heatzy as config entry."""
-    try:
-        await async_connect_heatzy(hass, config_entry.data)
-    except HeatzyException as error:
-        raise exceptions.ConfigEntryNotReady from error
+    hass.data[DOMAIN] = {}
+
+    coordinator = HeatzyDataUpdateCoordinator(hass, config_entry)
+    await coordinator.async_config_entry_first_refresh()
+
+    hass.data[DOMAIN][config_entry.entry_id] = coordinator
 
     hass.async_create_task(
         hass.config_entries.async_forward_entry_setup(config_entry, CLIM_DOMAIN)
@@ -57,19 +35,40 @@ async def async_setup_entry(hass, config_entry):
 
 async def async_unload_entry(hass, config_entry):
     """Unload a config entry."""
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_unload(config_entry, CLIM_DOMAIN)
+    unload_ok = await hass.config_entries.async_unload_platforms(
+        config_entry, [CLIM_DOMAIN]
     )
-    return True
+    return unload_ok
 
 
-async def async_connect_heatzy(hass, data):
-    """Connect to heatzy."""
-    try:
-        api = HeatzyClient(data[CONF_USERNAME], data[CONF_PASSWORD])
-        devices = await hass.async_add_executor_job(api.get_devices)
-        if devices is not None:
-            hass.data[DOMAIN] = {HEATZY_API: api, HEATZY_DEVICES: devices}
-    except (HttpRequestFailed, HeatzyException) as error:
-        _LOGGER.error(error)
-        raise HeatzyException from error
+class HeatzyDataUpdateCoordinator(DataUpdateCoordinator):
+    """Define an object to fetch datas."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry,
+    ) -> None:
+        """Class to manage fetching Heatzy data API."""
+        self.heatzy_client = HeatzyClient(
+            config_entry.data[CONF_USERNAME], config_entry.data[CONF_PASSWORD]
+        )
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=DOMAIN,
+            update_interval=timedelta(seconds=60),
+            request_refresh_debouncer=Debouncer(
+                hass, _LOGGER, cooldown=DEBOUNCE_COOLDOWN, immediate=False
+            ),
+        )
+
+    async def _async_update_data(self) -> dict:
+        with async_timeout.timeout(10):
+            try:
+                devices = await self.hass.async_add_executor_job(
+                    self.heatzy_client.get_devices
+                )
+                return {device["did"]: device for device in devices}
+            except (HttpRequestFailed, HeatzyException) as error:
+                raise UpdateFailed from error
