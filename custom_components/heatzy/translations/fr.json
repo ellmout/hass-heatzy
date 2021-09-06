@@ -1,14 +1,20 @@
 {
     "config": {
-        "title": "Heatzy",
+        "flow_title": "{name}",
         "step": {
             "user": {
-                "title": "Délcaration du compte Heatzy.",
-                "data": {"username": "Email", "password": "Mot de passe"}
+                "title": "Enregistrer votre compte Heatzy.",
+                "data": {
+                    "username": "Email",
+                    "password": "Mot de passe"
+                }
             }
         },
         "error": {
-            "cannot_connect": "Une erreur inconnue s'est produite"
+            "cannot_connect": "Une erreur inconnue s'est produite."
+        },
+        "abort": {
+            "already_configured": "Votre compte est déjà enregistré."
         }
     }
 }
