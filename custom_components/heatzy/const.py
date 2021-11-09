@@ -7,3 +7,4 @@ PILOTEV2 = [
     "4fc968a21e7243b390e9ede6f1c6465d",
 ]
 DEBOUNCE_COOLDOWN = 5
+COMPONENTS = ["climate", "switch"]
