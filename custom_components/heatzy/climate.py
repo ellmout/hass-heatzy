@@ -4,6 +4,7 @@ import logging
 from heatzypy.exception import HeatzyException
 
 from homeassistant.components.climate import ClimateEntity
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.components.climate.const import (
     HVAC_MODE_HEAT,
     HVAC_MODE_OFF,
@@ -40,49 +41,27 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 class HeatzyThermostat(CoordinatorEntity, ClimateEntity):
     """Heatzy climate."""
 
+    _attr_hvac_modes = MODE_LIST
+    _attr_preset_modes = PRESET_LIST
+    _attr_supported_features = SUPPORT_PRESET_MODE
+    _attr_temperature_unit = TEMP_CELSIUS
+
     def __init__(self, coordinator, unique_id):
         """Init."""
         super().__init__(coordinator)
-        self._coordinator = coordinator
-        self._unique_id = unique_id
-
-    @property
-    def temperature_unit(self):
-        """Return the unit of measurement used by the platform."""
-        return TEMP_CELSIUS
-
-    @property
-    def supported_features(self):
-        """Return the list of supported features."""
-        return SUPPORT_PRESET_MODE
-
-    @property
-    def unique_id(self):
-        """Return a unique ID."""
-        return self._unique_id
-
-    @property
-    def name(self):
-        """Return a name."""
-        return self._coordinator.data[self.unique_id]["dev_alias"]
+        self._attr_unique_id = unique_id
+        self._attr_name = coordinator.data[unique_id]["dev_alias"]
 
     @property
     def device_info(self):
         """Return the device info."""
-        return {
-            "name": self.name,
-            "identifiers": {(DOMAIN, self.unique_id)},
-            "manufacturer": DOMAIN,
-            "model": self._coordinator.data[self.unique_id].get("product_name"),
-            "sw_version": self._coordinator.data[self.unique_id].get(
-                "wifi_soft_version"
-            ),
-        }
-
-    @property
-    def hvac_modes(self):
-        """Return the list of available hvac operation modes."""
-        return MODE_LIST
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.unique_id)},
+            name=self.name,
+            manufacturer=DOMAIN,
+            sw_version=self.coordinator.data[self.unique_id].get("wifi_soft_version"),
+            model=self.coordinator.data[self.unique_id].get("product_name"),
+        )
 
     @property
     def hvac_mode(self):
@@ -91,25 +70,20 @@ class HeatzyThermostat(CoordinatorEntity, ClimateEntity):
             return HVAC_MODE_OFF
         return HVAC_MODE_HEAT
 
-    @property
-    def preset_modes(self):
-        """Return a list of available preset modes."""
-        return PRESET_LIST
-
-    async def async_set_hvac_mode(self, hvac_mode):
+    def set_hvac_mode(self, hvac_mode):
         """Set new hvac mode."""
         if hvac_mode == HVAC_MODE_OFF:
-            await self.async_turn_off()
+            self.turn_off()
         elif hvac_mode == HVAC_MODE_HEAT:
-            await self.async_turn_on()
+            self.turn_on()
 
-    async def async_turn_on(self):
+    def turn_on(self):
         """Turn device on."""
-        await self.async_set_preset_mode(PRESET_COMFORT)
+        self.set_preset_mode(PRESET_COMFORT)
 
-    async def async_turn_off(self):
+    def turn_off(self):
         """Turn device off."""
-        await self.async_set_preset_mode(PRESET_NONE)
+        self.set_preset_mode(PRESET_NONE)
 
 
 class HeatzyPiloteV1Thermostat(HeatzyThermostat):
@@ -132,20 +106,19 @@ class HeatzyPiloteV1Thermostat(HeatzyThermostat):
     def preset_mode(self):
         """Return the current preset mode, e.g., home, away, temp."""
         return self.HEATZY_TO_HA_STATE.get(
-            self._coordinator.data[self.unique_id].get("attr", {}).get("mode")
+            self.coordinator.data[self.unique_id].get("attr", {}).get("mode")
         )
 
-    async def async_set_preset_mode(self, preset_mode):
+    def set_preset_mode(self, preset_mode):
         """Set new preset mode."""
         try:
-            await self.hass.async_add_executor_job(
-                self._coordinator.heatzy_client.control_device,
+            self.hass.async_add_executor_job(
+                self.coordinator.heatzy_client.control_device,
                 self.unique_id,
                 {"raw": self.HA_TO_HEATZY_STATE.get(preset_mode)},
             )
         except HeatzyException as error:
             _LOGGER.error("Error to set preset mode : %s", error)
-        await self.coordinator.async_request_refresh()
 
 
 class HeatzyPiloteV2Thermostat(HeatzyThermostat):
@@ -171,18 +144,16 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
     def preset_mode(self):
         """Return the current preset mode, e.g., home, away, temp."""
         return self.HEATZY_TO_HA_STATE.get(
-            self._coordinator.data[self.unique_id].get("attr", {}).get("mode")
+            self.coordinator.data[self.unique_id].get("attr", {}).get("mode")
         )
 
-    async def async_set_preset_mode(self, preset_mode):
+    def set_preset_mode(self, preset_mode):
         """Set new preset mode."""
         try:
-            await self.hass.async_add_executor_job(
-                self._coordinator.heatzy_client.control_device,
+            self.hass.async_add_executor_job(
+                self.coordinator.heatzy_client.control_device,
                 self.unique_id,
                 {"attrs": {"mode": self.HA_TO_HEATZY_STATE.get(preset_mode)}},
             )
         except HeatzyException as error:
             _LOGGER.error("Error to set preset mode : %s", error)
-
-        await self.coordinator.async_request_refresh()
