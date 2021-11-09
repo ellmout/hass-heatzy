@@ -8,4 +8,4 @@ PILOTEV2 = [
 ]
 GLOW = ["2fd622e45283470f9e27e8e6167d7533"]
 DEBOUNCE_COOLDOWN = 5
-COMPONENTS = ["climate", "switch"]
+PLATFORMS = ["climate", "switch"]
