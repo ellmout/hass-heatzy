@@ -6,5 +6,6 @@ PILOTEV2 = [
     "b9a67b6ce24b437d9794103fd317e627",
     "4fc968a21e7243b390e9ede6f1c6465d",
 ]
+ELEC_PRO_SOC = ["b8c6657b66c34148b4dee64d615cefc7"]
 DEBOUNCE_COOLDOWN = 5
 PLATFORMS = ["climate", "switch"]
