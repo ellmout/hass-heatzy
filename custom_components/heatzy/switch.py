@@ -3,7 +3,7 @@ import logging
 
 from heatzypy.exception import HeatzyException
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
@@ -22,6 +22,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 class LockSwitchEntity(CoordinatorEntity, SwitchEntity):
     """Lock Switch."""
+
+    entity_category = EntityCategory.CONFIG
 
     def __init__(self, coordinator, _unique_id):
         """Initialize switch."""
