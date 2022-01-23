@@ -2,7 +2,6 @@
 import logging
 from datetime import timedelta
 
-import async_timeout
 from heatzypy import HeatzyClient
 from heatzypy.exception import HeatzyException, HttpRequestFailed
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
