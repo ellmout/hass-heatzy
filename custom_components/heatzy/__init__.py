@@ -1,5 +1,4 @@
 """Heatzy platform configuration."""
-import asyncio
 import logging
 from datetime import timedelta
 
@@ -11,10 +10,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import PLATFORMS, DEBOUNCE_COOLDOWN, DOMAIN
+from .const import DEBOUNCE_COOLDOWN, DOMAIN, PLATFORMS
 
 _LOGGER = logging.getLogger(__name__)
-UPDATE_INTERVAL = timedelta(minutes=1)
+UPDATE_INTERVAL = timedelta(minutes=5)
 
 
 async def async_setup_entry(hass, config_entry):
@@ -36,7 +35,9 @@ async def async_setup_entry(hass, config_entry):
 
 async def async_unload_entry(hass, config_entry):
     """Unload a config entry."""
-    unload_ok = await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
+    unload_ok = await hass.config_entries.async_unload_platforms(
+        config_entry, PLATFORMS
+    )
     if unload_ok:
         hass.data[DOMAIN].pop(config_entry.entry_id)
 
@@ -66,11 +67,8 @@ class HeatzyDataUpdateCoordinator(DataUpdateCoordinator):
         )
 
     async def _async_update_data(self) -> dict:
-        with async_timeout.timeout(30):
-            try:
-                devices = await self.hass.async_add_executor_job(
-                    self.heatzy_client.get_devices
-                )
-                return {device["did"]: device for device in devices}
-            except (HttpRequestFailed, HeatzyException) as error:
-                raise UpdateFailed from error
+        try:
+            devices = await self.heatzy_client.async_get_devices()
+            return {device["did"]: device for device in devices}
+        except (HttpRequestFailed, HeatzyException) as error:
+            raise UpdateFailed from error
