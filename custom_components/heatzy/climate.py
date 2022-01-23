@@ -70,20 +70,20 @@ class HeatzyThermostat(CoordinatorEntity, ClimateEntity):
             return HVAC_MODE_OFF
         return HVAC_MODE_HEAT
 
-    def set_hvac_mode(self, hvac_mode):
+    async def async_set_hvac_mode(self, hvac_mode):
         """Set new hvac mode."""
         if hvac_mode == HVAC_MODE_OFF:
-            self.turn_off()
+            await self.async_turn_off()
         elif hvac_mode == HVAC_MODE_HEAT:
-            self.turn_on()
+            await self.async_turn_on()
 
-    def turn_on(self):
+    async def async_turn_on(self):
         """Turn device on."""
-        self.set_preset_mode(PRESET_COMFORT)
+        await self.async_set_preset_mode(PRESET_COMFORT)
 
-    def turn_off(self):
+    async def async_turn_off(self):
         """Turn device off."""
-        self.set_preset_mode(PRESET_NONE)
+        await self.async_set_preset_mode(PRESET_NONE)
 
 
 class HeatzyPiloteV1Thermostat(HeatzyThermostat):
@@ -109,14 +109,14 @@ class HeatzyPiloteV1Thermostat(HeatzyThermostat):
             self.coordinator.data[self.unique_id].get("attr", {}).get("mode")
         )
 
-    def set_preset_mode(self, preset_mode):
+    async def async_set_preset_mode(self, preset_mode):
         """Set new preset mode."""
         try:
-            self.hass.async_add_executor_job(
-                self.coordinator.heatzy_client.control_device,
+            await self.coordinator.heatzy_client.control_device(
                 self.unique_id,
                 {"raw": self.HA_TO_HEATZY_STATE.get(preset_mode)},
             )
+            await self.coordinator.async_request_refresh()
         except HeatzyException as error:
             _LOGGER.error("Error to set preset mode : %s", error)
 
@@ -147,13 +147,13 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
             self.coordinator.data[self.unique_id].get("attr", {}).get("mode")
         )
 
-    def set_preset_mode(self, preset_mode):
+    async def async_set_preset_mode(self, preset_mode):
         """Set new preset mode."""
         try:
-            self.hass.async_add_executor_job(
-                self.coordinator.heatzy_client.control_device,
+            await self.coordinator.heatzy_client.async_control_device(
                 self.unique_id,
                 {"attrs": {"mode": self.HA_TO_HEATZY_STATE.get(preset_mode)}},
             )
+            await self.coordinator.async_request_refresh()
         except HeatzyException as error:
             _LOGGER.error("Error to set preset mode : %s", error)

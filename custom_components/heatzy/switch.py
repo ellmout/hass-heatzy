@@ -50,9 +50,7 @@ class LockSwitchEntity(CoordinatorEntity, SwitchEntity):
         """Turn the entity on."""
         payload = {"attrs": {"lock_switch": 1}}
         try:
-            await self.hass.async_add_executor_job(
-                self.coordinator.heatzy_client.control_device, self.unique_id, payload
-            )
+            await self.coordinator.heatzy_client.async_control_device(self.unique_id, payload)
         except HeatzyException as error:
             _LOGGER.error("Error to lock pilot : %s", error)
 
@@ -62,9 +60,7 @@ class LockSwitchEntity(CoordinatorEntity, SwitchEntity):
         """Turn the entity off."""
         payload = {"attrs": {"lock_switch": 0}}
         try:
-            await self.hass.async_add_executor_job(
-                self.coordinator.heatzy_client.control_device, self.unique_id, payload
-            )
+            await self.coordinator.heatzy_client.async_control_device(self.unique_id, payload)
         except HeatzyException as error:
             _LOGGER.error("Error to lock pilot : %s", error)
 
