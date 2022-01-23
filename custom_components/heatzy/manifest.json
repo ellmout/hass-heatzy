@@ -7,5 +7,5 @@
     "requirements": ["heatzypy==2.0.1"],
     "dependencies": [],
     "codeowners": ["@cyr-ius"],
-    "version": "4.9"
+    "version": "5.0"
 }
