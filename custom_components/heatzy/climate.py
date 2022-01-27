@@ -17,7 +17,8 @@ from homeassistant.components.climate.const import (
 from homeassistant.const import TEMP_CELSIUS
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, PILOTEV1, PILOTEV2, ELEC_PRO_SOC
+from .const import DOMAIN, PILOTEV1, PILOTEV2, ELEC_PRO_SOC, GLOW
+
 
 MODE_LIST = [HVAC_MODE_HEAT, HVAC_MODE_OFF]
 PRESET_LIST = [PRESET_NONE, PRESET_COMFORT, PRESET_ECO, PRESET_AWAY]
@@ -33,7 +34,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         product_key = device.get("product_key")
         if product_key in PILOTEV1:
             devices.append(HeatzyPiloteV1Thermostat(coordinator, device["did"]))
-        elif product_key in PILOTEV2 or product_key in ELEC_PRO_SOC:
+        elif product_key in PILOTEV2 or product_key in ELEC_PRO_SOC or product_key in GLOW:
             devices.append(HeatzyPiloteV2Thermostat(coordinator, device["did"]))
     async_add_entities(devices)
 
