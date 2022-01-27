@@ -186,10 +186,7 @@ class HeatzyGlow(HeatzyThermostat):
 
     @property
     def preset_mode(self):
-        """Return the current preset mode, e.g., home, away, temp.
-
-        Requires SUPPORT_PRESET_MODE.
-        """
+        """Return the current preset mode, e.g., home, away, temp."""
         return self.HEATZY_TO_HA_STATE.get(
             self._heater_data.get("attr", {}).get("mode")
         )
