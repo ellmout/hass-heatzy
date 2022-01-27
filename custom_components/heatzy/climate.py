@@ -53,6 +53,11 @@ class HeatzyThermostat(CoordinatorEntity, ClimateEntity):
         self._attr_name = coordinator.data[unique_id]["dev_alias"]
 
     @property
+    def available(self):
+        """Return connected state."""
+        return self.coordinator.data[self.unique_id].get("is_online") is True
+
+    @property
     def device_info(self):
         """Return the device info."""
         return DeviceInfo(

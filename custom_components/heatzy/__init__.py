@@ -70,4 +70,4 @@ class HeatzyDataUpdateCoordinator(DataUpdateCoordinator):
             devices = await self.heatzy_client.async_get_devices()
             return {device["did"]: device for device in devices}
         except (HttpRequestFailed, HeatzyException) as error:
-            raise UpdateFailed from error
+            raise UpdateFailed(error) from error
