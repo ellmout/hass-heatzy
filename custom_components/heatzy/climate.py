@@ -118,7 +118,7 @@ class HeatzyPiloteV1Thermostat(HeatzyThermostat):
     async def async_set_preset_mode(self, preset_mode):
         """Set new preset mode."""
         try:
-            await self.coordinator.heatzy_client.control_device(
+            await self.coordinator.heatzy_client.async_control_device(
                 self.unique_id,
                 {"raw": self.HA_TO_HEATZY_STATE.get(preset_mode)},
             )
