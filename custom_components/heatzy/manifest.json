@@ -4,8 +4,8 @@
     "config_flow": true,
     "documentation": "https://github.com/cyr-ius/hass-heatzy",
     "issue_tracker": "https://github.com/cyr-ius/hass-heatzy/issues",
-    "requirements": ["heatzypy==2.0.1"],
+    "requirements": ["heatzypy==2.0.2"],
     "dependencies": [],
     "codeowners": ["@cyr-ius"],
-    "version": "5.3"
+    "version": "5.3.1"
 }
