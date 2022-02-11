@@ -13,9 +13,11 @@ from homeassistant.components.climate.const import (
     PRESET_ECO,
     PRESET_NONE,
     SUPPORT_PRESET_MODE,
-    SUPPORT_TARGET_TEMPERATURE,
+    SUPPORT_TARGET_TEMPERATURE_RANGE,
+    ATTR_TARGET_TEMP_LOW,
+    ATTR_TARGET_TEMP_HIGH,
 )
-from homeassistant.const import TEMP_CELSIUS, ATTR_TEMPERATURE
+from homeassistant.const import TEMP_CELSIUS
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, PILOTEV1, PILOTEV2, ELEC_PRO_SOC, GLOW
@@ -171,15 +173,18 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
 class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
     """Glow."""
 
-    _attr_supported_features = SUPPORT_PRESET_MODE | SUPPORT_TARGET_TEMPERATURE
+    _attr_supported_features = (
+        SUPPORT_PRESET_MODE
+        | SUPPORT_TARGET_TEMPERATURE_RANGE
+    )
 
     @property
     def current_temperature(self):
         """Return current temperature."""
-        cur_tempH = self.HEATZY_TO_HA_STATE.get(
+        cur_tempH = (
             self.coordinator.data[self.unique_id].get("attr", {}).get("cur_tempH")
         )
-        cur_tempL = self.HEATZY_TO_HA_STATE.get(
+        cur_tempL = (
             self.coordinator.data[self.unique_id].get("attr", {}).get("cur_tempL")
         )
         return (cur_tempL + (cur_tempH * 255)) / 10
@@ -187,10 +192,10 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
     @property
     def target_temperature_high(self):
         """Return comfort temperature."""
-        cft_tempH = self.HEATZY_TO_HA_STATE.get(
+        cft_tempH = (
             self.coordinator.data[self.unique_id].get("attr", {}).get("cft_tempH", 0)
         )
-        cft_tempL = self.HEATZY_TO_HA_STATE.get(
+        cft_tempL = (
             self.coordinator.data[self.unique_id].get("attr", {}).get("cft_tempL", 0)
         )
         return (cft_tempL + (cft_tempH * 255)) / 10
@@ -198,30 +203,37 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
     @property
     def target_temperature_low(self):
         """Return comfort temperature."""
-        eco_tempH = self.HEATZY_TO_HA_STATE.get(
+        eco_tempH = (
             self.coordinator.data[self.unique_id].get("attr", {}).get("eco_tempH", 0)
         )
-        eco_tempL = self.HEATZY_TO_HA_STATE.get(
+        eco_tempL = (
             self.coordinator.data[self.unique_id].get("attr", {}).get("eco_tempL", 0)
         )
         return (eco_tempL + (eco_tempH * 255)) / 10
 
     async def async_set_temperature(self, **kwargs):
         """Set new target temperature."""
-        if (temp := kwargs.get(ATTR_TEMPERATURE)) is None:
+        if (tempECO := kwargs.get(ATTR_TARGET_TEMP_LOW)) and (
+            tempCFT := kwargs.get(ATTR_TARGET_TEMP_HIGH)
+        ) is None:
             return
 
-        octal_temp = "{:016b}".format(int(temp * 10))
-        tempL = int(octal_temp[:8], 2)
-        tempH = int(octal_temp[8:], 2)
+        octal_tempCFT = "{:016b}".format(int(tempCFT * 10))
+        tempCFT_L = int(octal_tempCFT[:8], 2)
+        tempCFT_H = int(octal_tempCFT[8:], 2)
 
-        if self.preset_mode == PRESET_COMFORT:
-            await self.coordinator.heatzy_client.async_control_device(
-                self.unique_id,
-                {"attrs": {"cft_tempL": tempL, "cft_tempH": tempH}},
-            )
-        elif self.preset_mode == PRESET_ECO:
-            await self.coordinator.heatzy_client.async_control_device(
-                self.unique_id,
-                {"attrs": {"eco_tempL": tempL, "eco_tempH": tempH}},
-            )
+        octal_tempECO = "{:016b}".format(int(tempECO * 10))
+        tempECO_L = int(octal_tempECO[:8], 2)
+        tempECO_H = int(octal_tempECO[8:], 2)
+
+        await self.coordinator.heatzy_client.async_control_device(
+            self.unique_id,
+            {
+                "attrs": {
+                    "cft_tempL": tempCFT_L,
+                    "cft_tempH": tempCFT_H,
+                    "eco_tempH": tempECO_H,
+                    "eco_tempL": tempECO_L,
+                }
+            },
+        )
