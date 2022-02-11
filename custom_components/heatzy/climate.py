@@ -13,8 +13,9 @@ from homeassistant.components.climate.const import (
     PRESET_ECO,
     PRESET_NONE,
     SUPPORT_PRESET_MODE,
+    SUPPORT_TARGET_TEMPERATURE,
 )
-from homeassistant.const import TEMP_CELSIUS
+from homeassistant.const import TEMP_CELSIUS, ATTR_TEMPERATURE
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, PILOTEV1, PILOTEV2, ELEC_PRO_SOC, GLOW
@@ -34,8 +35,10 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         product_key = device.get("product_key")
         if product_key in PILOTEV1:
             devices.append(HeatzyPiloteV1Thermostat(coordinator, device["did"]))
-        elif product_key in PILOTEV2 or product_key in ELEC_PRO_SOC or product_key in GLOW:
+        elif product_key in PILOTEV2 or product_key in ELEC_PRO_SOC:
             devices.append(HeatzyPiloteV2Thermostat(coordinator, device["did"]))
+        elif product_key in GLOW:
+            devices.append(Glowv1Thermostat(coordinator, device["did"]))
     async_add_entities(devices)
 
 
@@ -163,3 +166,62 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
             await self.coordinator.async_request_refresh()
         except HeatzyException as error:
             _LOGGER.error("Error to set preset mode : %s", error)
+
+
+class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
+    """Glow."""
+
+    _attr_supported_features = SUPPORT_PRESET_MODE | SUPPORT_TARGET_TEMPERATURE
+
+    @property
+    def current_temperature(self):
+        """Return current temperature."""
+        cur_tempH = self.HEATZY_TO_HA_STATE.get(
+            self.coordinator.data[self.unique_id].get("attr", {}).get("cur_tempH")
+        )
+        cur_tempL = self.HEATZY_TO_HA_STATE.get(
+            self.coordinator.data[self.unique_id].get("attr", {}).get("cur_tempL")
+        )
+        return (cur_tempL + (cur_tempH * 255)) / 10
+
+    @property
+    def target_temperature_high(self):
+        """Return comfort temperature."""
+        cft_tempH = self.HEATZY_TO_HA_STATE.get(
+            self.coordinator.data[self.unique_id].get("attr", {}).get("cft_tempH", 0)
+        )
+        cft_tempL = self.HEATZY_TO_HA_STATE.get(
+            self.coordinator.data[self.unique_id].get("attr", {}).get("cft_tempL", 0)
+        )
+        return (cft_tempL + (cft_tempH * 255)) / 10
+
+    @property
+    def target_temperature_low(self):
+        """Return comfort temperature."""
+        eco_tempH = self.HEATZY_TO_HA_STATE.get(
+            self.coordinator.data[self.unique_id].get("attr", {}).get("eco_tempH", 0)
+        )
+        eco_tempL = self.HEATZY_TO_HA_STATE.get(
+            self.coordinator.data[self.unique_id].get("attr", {}).get("eco_tempL", 0)
+        )
+        return (eco_tempL + (eco_tempH * 255)) / 10
+
+    async def async_set_temperature(self, **kwargs):
+        """Set new target temperature."""
+        if (temp := kwargs.get(ATTR_TEMPERATURE)) is None:
+            return
+
+        octal_temp = "{:016b}".format(int(temp * 10))
+        tempL = int(octal_temp[:8], 2)
+        tempH = int(octal_temp[8:], 2)
+
+        if self.preset_mode == PRESET_COMFORT:
+            await self.coordinator.heatzy_client.async_control_device(
+                self.unique_id,
+                {"attrs": {"cft_tempL": tempL, "cft_tempH": tempH}},
+            )
+        elif self.preset_mode == PRESET_ECO:
+            await self.coordinator.heatzy_client.async_control_device(
+                self.unique_id,
+                {"attrs": {"eco_tempL": tempL, "eco_tempH": tempH}},
+            )
