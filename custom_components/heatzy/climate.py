@@ -173,10 +173,7 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
 class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
     """Glow."""
 
-    _attr_supported_features = (
-        SUPPORT_PRESET_MODE
-        | SUPPORT_TARGET_TEMPERATURE_RANGE
-    )
+    _attr_supported_features = SUPPORT_PRESET_MODE | SUPPORT_TARGET_TEMPERATURE_RANGE
 
     @property
     def current_temperature(self):
@@ -213,27 +210,26 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
 
     async def async_set_temperature(self, **kwargs):
         """Set new target temperature."""
-        if (tempECO := kwargs.get(ATTR_TARGET_TEMP_LOW)) and (
-            tempCFT := kwargs.get(ATTR_TARGET_TEMP_HIGH)
+        if (temp_eco := kwargs.get(ATTR_TARGET_TEMP_LOW)) and (
+            temp_cft := kwargs.get(ATTR_TARGET_TEMP_HIGH)
         ) is None:
             return
 
-        octal_tempCFT = "{:016b}".format(int(tempCFT * 10))
-        tempCFT_L = int(octal_tempCFT[:8], 2)
-        tempCFT_H = int(octal_tempCFT[8:], 2)
+        b_temp_cft = "{:016b}".format(int(temp_eco * 10))
+        b_temp_eco = "{:016b}".format(int(temp_cft * 10))
 
-        octal_tempECO = "{:016b}".format(int(tempECO * 10))
-        tempECO_L = int(octal_tempECO[:8], 2)
-        tempECO_H = int(octal_tempECO[8:], 2)
-
-        await self.coordinator.heatzy_client.async_control_device(
-            self.unique_id,
-            {
-                "attrs": {
-                    "cft_tempL": tempCFT_L,
-                    "cft_tempH": tempCFT_H,
-                    "eco_tempH": tempECO_H,
-                    "eco_tempL": tempECO_L,
-                }
-            },
-        )
+        try:
+            await self.coordinator.heatzy_client.async_control_device(
+                self.unique_id,
+                {
+                    "attrs": {
+                        "cft_tempL": int(b_temp_cft[:8], 2),
+                        "cft_tempH": int(b_temp_cft[8:], 2),
+                        "eco_tempL": int(b_temp_eco[:8], 2),
+                        "eco_tempH": int(b_temp_eco[8:], 2),
+                    }
+                },
+            )
+            await self.coordinator.async_request_refresh()
+        except HeatzyException as error:
+            _LOGGER.error("Error to set temperature: %s", error)
