@@ -210,23 +210,25 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
 
     async def async_set_temperature(self, **kwargs):
         """Set new target temperature."""
-        if (temp_eco := kwargs.get(ATTR_TARGET_TEMP_LOW)) and (
-            temp_cft := kwargs.get(ATTR_TARGET_TEMP_HIGH)
-        ) is None:
+        temp_eco = kwargs.get(ATTR_TARGET_TEMP_LOW)
+        temp_cft = kwargs.get(ATTR_TARGET_TEMP_HIGH)
+
+        if(temp_eco or temp_cft) is None:
             return
 
-        b_temp_cft = "{:016b}".format(int(temp_eco * 10))
-        b_temp_eco = "{:016b}".format(int(temp_cft * 10))
+        b_temp_cft = int(temp_cft * 10)
+        b_temp_eco = int(temp_eco * 10)
+
+        self.coordinator.data[self.unique_id].get("attr", {})["eco_tempL"] = b_temp_eco
+        self.coordinator.data[self.unique_id].get("attr", {})["cft_tempL"] = b_temp_cft
 
         try:
             await self.coordinator.heatzy_client.async_control_device(
                 self.unique_id,
                 {
                     "attrs": {
-                        "cft_tempL": int(b_temp_cft[:8], 2),
-                        "cft_tempH": int(b_temp_cft[8:], 2),
-                        "eco_tempL": int(b_temp_eco[:8], 2),
-                        "eco_tempH": int(b_temp_eco[8:], 2),
+                        "cft_tempL": b_temp_cft,
+                        "eco_tempL": b_temp_eco,
                     }
                 },
             )
