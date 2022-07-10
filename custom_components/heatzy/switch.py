@@ -25,12 +25,12 @@ class LockSwitchEntity(CoordinatorEntity, SwitchEntity):
 
     entity_category = EntityCategory.CONFIG
 
-    def __init__(self, coordinator, _unique_id):
+    def __init__(self, coordinator, did):
         """Initialize switch."""
         super().__init__(coordinator)
-        self._attr_unique_id = _unique_id
+        self._attr_unique_id = did
         self._attr_name = "Lock switch {}".format(
-            coordinator.data[_unique_id]["dev_alias"]
+            coordinator.data[did]["dev_alias"]
         )
 
     @property

@@ -12,7 +12,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import DEBOUNCE_COOLDOWN, DOMAIN, PLATFORMS
 
 _LOGGER = logging.getLogger(__name__)
-UPDATE_INTERVAL = timedelta(minutes=5)
+SCAN_INTERVAL = 60
 
 
 async def async_setup_entry(hass, config_entry):
@@ -52,20 +52,22 @@ class HeatzyDataUpdateCoordinator(DataUpdateCoordinator):
         config_entry,
     ) -> None:
         """Class to manage fetching Heatzy data API."""
-        self.heatzy_client = HeatzyClient(
-            config_entry.data[CONF_USERNAME], config_entry.data[CONF_PASSWORD]
-        )
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=timedelta(seconds=60),
+            update_interval=timedelta(seconds=SCAN_INTERVAL),
             request_refresh_debouncer=Debouncer(
                 hass, _LOGGER, cooldown=DEBOUNCE_COOLDOWN, immediate=False
             ),
+        )        
+        self.heatzy_client = HeatzyClient(
+            config_entry.data[CONF_USERNAME], config_entry.data[CONF_PASSWORD]
         )
 
+
     async def _async_update_data(self) -> dict:
+        """Update data."""
         try:
             devices = await self.heatzy_client.async_get_devices()
             return {device["did"]: device for device in devices}
