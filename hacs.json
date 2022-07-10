@@ -1,7 +1,6 @@
 {
   "name": "Heatzy",
   "country": "FR",
-  "domains": ["climate"],
   "homeassistant": "0.109",
   "render_readme": true
 }
