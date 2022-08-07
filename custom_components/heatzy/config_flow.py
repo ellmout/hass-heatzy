@@ -27,15 +27,16 @@ class HeatzyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             try:
-                await self.async_set_unique_id(user_input[CONF_USERNAME])
-                self._abort_if_unique_id_configured()
-
+                self._async_abort_entries_match(
+                    {CONF_USERNAME: user_input[CONF_USERNAME]}
+                )
                 api = HeatzyClient(user_input[CONF_USERNAME], user_input[CONF_PASSWORD])
                 await self.hass.async_add_executor_job(api.is_connected)
+                await api.async_close()
             except HeatzyException:
                 errors["base"] = "cannot_connect"
             else:
-                return self.async_create_entry(title=DOMAIN, data=user_input)
+                return self.async_create_entry(title=DOMAIN,data=user_input)
 
         return self.async_show_form(
             step_id="user", data_schema=DATA_SCHEMA, errors=errors
