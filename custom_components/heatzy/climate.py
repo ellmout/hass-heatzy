@@ -2,29 +2,29 @@
 import logging
 
 from heatzypy.exception import HeatzyException
-from homeassistant.components.climate import (
-    ClimateEntity,
-    ClimateEntityFeature,
-    HVACMode
-)
+
+from homeassistant.components.climate import ClimateEntity
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.components.climate.const import (
-    ATTR_TARGET_TEMP_HIGH,
-    ATTR_TARGET_TEMP_LOW,
+    HVAC_MODE_HEAT,
+    HVAC_MODE_OFF,
     PRESET_AWAY,
     PRESET_COMFORT,
     PRESET_ECO,
     PRESET_NONE,
     SUPPORT_PRESET_MODE,
     SUPPORT_TARGET_TEMPERATURE_RANGE,
+    ATTR_TARGET_TEMP_LOW,
+    ATTR_TARGET_TEMP_HIGH,
 )
 from homeassistant.const import TEMP_CELSIUS
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, ELEC_PRO_SOC, GLOW, PILOTEV1, PILOTEV2
+from .const import DOMAIN, PILOTEV1, PILOTEV2, ELEC_PRO_SOC, GLOW
 
-MODE_LIST = [HVACMode.HEAT, HVACMode.OFF]
-PRESET_LIST = [PRESET_COMFORT, PRESET_ECO, PRESET_AWAY]
+
+MODE_LIST = [HVAC_MODE_HEAT, HVAC_MODE_OFF]
+PRESET_LIST = [PRESET_NONE, PRESET_COMFORT, PRESET_ECO, PRESET_AWAY]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ class HeatzyThermostat(CoordinatorEntity, ClimateEntity):
 
     _attr_hvac_modes = MODE_LIST
     _attr_preset_modes = PRESET_LIST
-    _attr_supported_features = (ClimateEntityFeature.PRESET_MODE)
+    _attr_supported_features = SUPPORT_PRESET_MODE
     _attr_temperature_unit = TEMP_CELSIUS
 
     def __init__(self, coordinator, unique_id):
@@ -78,14 +78,14 @@ class HeatzyThermostat(CoordinatorEntity, ClimateEntity):
     def hvac_mode(self):
         """Return hvac operation ie. heat, cool mode."""
         if self.preset_mode == PRESET_NONE:
-            return HVACMode.OFF
-        return HVACMode.HEAT
+            return HVAC_MODE_OFF
+        return HVAC_MODE_HEAT
 
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new hvac mode."""
-        if hvac_mode == HVACMode.OFF:
+        if hvac_mode == HVAC_MODE_OFF:
             await self.async_turn_off()
-        elif hvac_mode == HVACMode.HEAT:
+        elif hvac_mode == HVAC_MODE_HEAT:
             await self.async_turn_on()
 
     async def async_turn_on(self):
@@ -213,7 +213,7 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
         temp_eco = kwargs.get(ATTR_TARGET_TEMP_LOW)
         temp_cft = kwargs.get(ATTR_TARGET_TEMP_HIGH)
 
-        if (temp_eco or temp_cft) is None:
+        if(temp_eco or temp_cft) is None:
             return
 
         b_temp_cft = int(temp_cft * 10)
