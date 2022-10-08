@@ -4,12 +4,12 @@ from datetime import timedelta
 
 from heatzypy import HeatzyClient
 from heatzypy.exception import HeatzyException, HttpRequestFailed
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 from .const import DEBOUNCE_COOLDOWN, DOMAIN, PLATFORMS
 
@@ -17,9 +17,7 @@ _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = 60
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry
-) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Heatzy as config entry."""
     hass.data.setdefault(DOMAIN, {})
 
@@ -45,9 +43,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 class HeatzyDataUpdateCoordinator(DataUpdateCoordinator):
     """Define an object to fetch datas."""
 
-    def __init__(
-        self, hass: HomeAssistant, config_entry: ConfigEntry
-    ) -> None:
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Class to manage fetching Heatzy data API."""
         super().__init__(
             hass,
@@ -60,7 +56,7 @@ class HeatzyDataUpdateCoordinator(DataUpdateCoordinator):
         )
         session = async_create_clientsession(hass)
         self.heatzy_client = HeatzyClient(
-            config_entry.data[CONF_USERNAME], config_entry.data[CONF_PASSWORD], session
+            entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD], session
         )
 
     async def _async_update_data(self) -> dict:
