@@ -5,8 +5,7 @@ from heatzypy.exception import HeatzyException
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
-    HVACMode,
-    HVACAction,
+    HVACMode
 )
 from homeassistant.components.climate.const import (
     ATTR_TARGET_TEMP_HIGH,
@@ -18,7 +17,7 @@ from homeassistant.components.climate.const import (
     SUPPORT_PRESET_MODE,
     SUPPORT_TARGET_TEMPERATURE_RANGE,
 )
-from homeassistant.const import TEMP_CELSIUS, STATE_ON, STATE_OFF
+from homeassistant.const import TEMP_CELSIUS
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -50,7 +49,7 @@ class HeatzyThermostat(CoordinatorEntity, ClimateEntity):
 
     _attr_hvac_modes = MODE_LIST
     _attr_preset_modes = PRESET_LIST
-    _attr_supported_features = ClimateEntityFeature.PRESET_MODE
+    _attr_supported_features = (ClimateEntityFeature.PRESET_MODE)
     _attr_temperature_unit = TEMP_CELSIUS
 
     def __init__(self, coordinator, unique_id):
@@ -81,20 +80,6 @@ class HeatzyThermostat(CoordinatorEntity, ClimateEntity):
         if self.preset_mode == PRESET_NONE:
             return HVACMode.OFF
         return HVACMode.HEAT
-
-    @property
-    def hvac_action(self):
-        """Return hvac action ie. heat, cool mode."""
-        action = (
-            HVACAction.OFF if self.preset_mode == PRESET_NONE else HVACAction.HEATING
-        )
-        return action
-
-    @property
-    def state(self):
-        """Return hvac action ie. heat, cool mode."""
-        action = STATE_OFF if self.preset_mode == PRESET_NONE else STATE_ON
-        return action
 
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new hvac mode."""
