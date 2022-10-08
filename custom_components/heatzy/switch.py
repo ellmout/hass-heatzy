@@ -51,7 +51,7 @@ class LockSwitchEntity(CoordinatorEntity[HeatzyDataUpdateCoordinator], SwitchEnt
             manufacturer=DOMAIN,
         )
 
-    async def async_turn_on(self, **kwargs) -> None:
+    async def async_turn_on(self) -> None:
         """Turn the entity on."""
         payload = {"attrs": {"lock_switch": 1}}
         try:
@@ -63,7 +63,7 @@ class LockSwitchEntity(CoordinatorEntity[HeatzyDataUpdateCoordinator], SwitchEnt
 
         await self.coordinator.async_request_refresh()
 
-    async def async_turn_off(self, **kwargs) -> None:
+    async def async_turn_off(self) -> None:
         """Turn the entity off."""
         payload = {"attrs": {"lock_switch": 0}}
         try:
