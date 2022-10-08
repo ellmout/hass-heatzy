@@ -36,7 +36,7 @@ class HeatzyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             except HeatzyException:
                 errors["base"] = "cannot_connect"
             else:
-                return self.async_create_entry(title=DOMAIN,data=user_input)
+                return self.async_create_entry(title=DOMAIN, data=user_input)
 
         return self.async_show_form(
             step_id="user", data_schema=DATA_SCHEMA, errors=errors
