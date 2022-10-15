@@ -237,3 +237,30 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
             await self.coordinator.async_request_refresh()
         except HeatzyException as error:
             _LOGGER.error("Error to set temperature: %s", error)
+
+    async def async_turn_on(self) -> str:
+        """Turn device on."""
+        try:
+            await self.coordinator.heatzy_client.async_control_device(
+                self.unique_id, {"attrs": {"on_off": 1}}
+            )
+            await self.coordinator.async_request_refresh()
+        except HeatzyException as error:
+            _LOGGER.error("Error to turn on : %s", error)
+
+    async def async_turn_off(self) -> str:
+        """Turn device off."""
+        try:
+            await self.coordinator.heatzy_client.async_control_device(
+                self.unique_id, {"attrs": {"on_off": 0}}
+            )
+            await self.coordinator.async_request_refresh()
+        except HeatzyException as error:
+            _LOGGER.error("Error to turn off : %s", error)
+
+    @property
+    def hvac_mode(self):
+        """Return hvac operation ie. heat, cool mode."""
+        if self.coordinator.data[self.unique_id].get("attr", {}).get("on_off") == 0:
+            return HVACMode.OFF
+        return HVACMode.HEAT
