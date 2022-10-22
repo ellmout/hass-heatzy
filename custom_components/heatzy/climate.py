@@ -131,7 +131,9 @@ class HeatzyPiloteV1Thermostat(HeatzyThermostat):
             )
             await self.coordinator.async_request_refresh()
         except HeatzyException as error:
-            _LOGGER.error("Error to set preset mode : %s", error)
+            _LOGGER.error(
+                "Set preset mode (%s) %s (%s)", preset_mode, error, self.name
+            )
 
 
 class HeatzyPiloteV2Thermostat(HeatzyThermostat):
@@ -169,7 +171,9 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
             )
             await self.coordinator.async_request_refresh()
         except HeatzyException as error:
-            _LOGGER.error("Error to set preset mode : %s", error)
+            _LOGGER.error(
+                "Set preset mode (%s) %s (%s)", preset_mode, error, self.name
+            )
 
 
 class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
