@@ -1,12 +1,12 @@
 """Config flow to configure Heatzy."""
 import logging
 
-from heatzypy import HeatzyClient
-from heatzypy.exception import HeatzyException, AuthenticationFailed, HttpRequestFailed
 import voluptuous as vol
-
+from heatzypy import HeatzyClient
+from heatzypy.exception import AuthenticationFailed, HeatzyException, HttpRequestFailed
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 from .const import DOMAIN
 
@@ -27,12 +27,14 @@ class HeatzyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             try:
-                self._async_abort_entries_match(
-                    {CONF_USERNAME: user_input[CONF_USERNAME]}
+                username = user_input[CONF_USERNAME]
+                self._async_abort_entries_match({CONF_USERNAME: username})
+                api = HeatzyClient(
+                    username,
+                    user_input[CONF_PASSWORD],
+                    async_create_clientsession(self.hass),
                 )
-                api = HeatzyClient(user_input[CONF_USERNAME], user_input[CONF_PASSWORD])
-                await self.hass.async_add_executor_job(api.is_connected)
-                await api.async_close()
+                await api.async_connect()
             except AuthenticationFailed:
                 errors["base"] = "invalid_auth"
             except HttpRequestFailed:
@@ -40,7 +42,9 @@ class HeatzyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             except HeatzyException:
                 errors["base"] = "unknown"
             else:
-                return self.async_create_entry(title=DOMAIN, data=user_input)
+                return self.async_create_entry(
+                    title=f"{DOMAIN} ({username})", data=user_input
+                )
 
         return self.async_show_form(
             step_id="user", data_schema=DATA_SCHEMA, errors=errors
