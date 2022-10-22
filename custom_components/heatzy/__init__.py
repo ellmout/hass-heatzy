@@ -54,9 +54,10 @@ class HeatzyDataUpdateCoordinator(DataUpdateCoordinator):
                 hass, _LOGGER, cooldown=DEBOUNCE_COOLDOWN, immediate=False
             ),
         )
-        session = async_create_clientsession(hass)
         self.heatzy_client = HeatzyClient(
-            entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD], session
+            entry.data[CONF_USERNAME],
+            entry.data[CONF_PASSWORD],
+            async_create_clientsession(hass),
         )
 
     async def _async_update_data(self) -> dict:
