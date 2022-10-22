@@ -2,7 +2,7 @@
 import logging
 
 from heatzypy import HeatzyClient
-from heatzypy.exception import HeatzyException
+from heatzypy.exception import HeatzyException, AuthenticationFailed, HttpRequestFailed
 import voluptuous as vol
 
 from homeassistant import config_entries
@@ -33,8 +33,12 @@ class HeatzyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 api = HeatzyClient(user_input[CONF_USERNAME], user_input[CONF_PASSWORD])
                 await self.hass.async_add_executor_job(api.is_connected)
                 await api.async_close()
-            except HeatzyException:
+            except AuthenticationFailed:
+                errors["base"] = "invalid_auth"
+            except HttpRequestFailed:
                 errors["base"] = "cannot_connect"
+            except HeatzyException:
+                errors["base"] = "unknown"
             else:
                 return self.async_create_entry(title=DOMAIN, data=user_input)
 
