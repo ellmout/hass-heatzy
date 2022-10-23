@@ -2,16 +2,18 @@
 import logging
 from datetime import timedelta
 
+import async_timeout
 from heatzypy import HeatzyClient
-from heatzypy.exception import HeatzyException, HttpRequestFailed
+from heatzypy.exception import AuthenticationFailed, HeatzyException
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DEBOUNCE_COOLDOWN, DOMAIN, PLATFORMS
+from .const import API_TIMEOUT, DEBOUNCE_COOLDOWN, DOMAIN, PLATFORMS
 
 _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = 60
@@ -51,7 +53,7 @@ class HeatzyDataUpdateCoordinator(DataUpdateCoordinator):
                 hass, _LOGGER, cooldown=DEBOUNCE_COOLDOWN, immediate=False
             ),
         )
-        self.heatzy_client = HeatzyClient(
+        self.api = HeatzyClient(
             entry.data[CONF_USERNAME],
             entry.data[CONF_PASSWORD],
             async_create_clientsession(hass),
@@ -60,7 +62,9 @@ class HeatzyDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> dict:
         """Update data."""
         try:
-            devices = await self.heatzy_client.async_get_devices()
-            return {device["did"]: device for device in devices}
-        except (HttpRequestFailed, HeatzyException) as error:
-            raise UpdateFailed(error) from error
+            async with async_timeout.timeout(API_TIMEOUT):
+                return await self.api.async_get_devices()
+        except AuthenticationFailed as error:
+            raise ConfigEntryAuthFailed from error
+        except HeatzyException as error:
+            raise UpdateFailed(error)
