@@ -25,7 +25,7 @@ class HeatzyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         """Handle a flow initialized by the user."""
         errors = {}
-        if user_input is not None:
+        if user_input:
             try:
                 username = user_input[CONF_USERNAME]
                 self._async_abort_entries_match({CONF_USERNAME: username})
@@ -34,7 +34,7 @@ class HeatzyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     user_input[CONF_PASSWORD],
                     async_create_clientsession(self.hass),
                 )
-                await api.async_connect()
+                await api.async_bindings()
             except AuthenticationFailed:
                 errors["base"] = "invalid_auth"
             except HttpRequestFailed:
