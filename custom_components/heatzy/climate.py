@@ -25,7 +25,27 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import HeatzyDataUpdateCoordinator
-from .const import DOMAIN, ELEC_PRO_SOC, GLOW, PILOTEV1, PILOTEV2
+from .const import (
+    CFT_TEMP_H,
+    CFT_TEMP_L,
+    CONF_ALIAS,
+    CONF_ATTR,
+    CONF_MODE,
+    CONF_MODEL,
+    CONF_ON_OFF,
+    CONF_PRODUCT_KEY,
+    CONF_VERSION,
+    CUR_TEMP_H,
+    CUR_TEMP_L,
+    DOMAIN,
+    ECO_TEMP_H,
+    ECO_TEMP_L,
+    ELEC_PRO_SOC,
+    GLOW,
+    PILOTEV1,
+    PILOTEV2,
+    CONF_ATTRS,
+)
 
 MODE_LIST = [HVACMode.HEAT, HVACMode.OFF]
 PRESET_LIST = [PRESET_NONE, PRESET_COMFORT, PRESET_ECO, PRESET_AWAY]
@@ -38,16 +58,16 @@ async def async_setup_entry(
 ) -> None:
     """Load all Heatzy devices."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    devices = []
-    for device in coordinator.data.values():
-        product_key = device.get("product_key")
+    entities = []
+    for unique_id, device in coordinator.data.items():
+        product_key = device.get(CONF_PRODUCT_KEY)
         if product_key in PILOTEV1:
-            devices.append(HeatzyPiloteV1Thermostat(coordinator, device["did"]))
+            entities.append(HeatzyPiloteV1Thermostat(coordinator, unique_id))
         elif product_key in PILOTEV2 or product_key in ELEC_PRO_SOC:
-            devices.append(HeatzyPiloteV2Thermostat(coordinator, device["did"]))
+            entities.append(HeatzyPiloteV2Thermostat(coordinator, unique_id))
         elif product_key in GLOW:
-            devices.append(Glowv1Thermostat(coordinator, device["did"]))
-    async_add_entities(devices)
+            entities.append(Glowv1Thermostat(coordinator, unique_id))
+    async_add_entities(entities)
 
 
 class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEntity):
@@ -63,7 +83,7 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
         """Init."""
         super().__init__(coordinator)
         self._attr_unique_id = unique_id
-        self._attr_name = coordinator.data[unique_id]["dev_alias"]
+        self._attr_name = coordinator.data[unique_id][CONF_ALIAS]
 
     @property
     def device_info(self):
@@ -72,8 +92,8 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
             identifiers={(DOMAIN, self.unique_id)},
             name=self.name,
             manufacturer=DOMAIN,
-            sw_version=self.coordinator.data[self.unique_id].get("wifi_soft_version"),
-            model=self.coordinator.data[self.unique_id].get("product_name"),
+            sw_version=self.coordinator.data[self.unique_id].get(CONF_VERSION),
+            model=self.coordinator.data[self.unique_id].get(CONF_MODEL),
         )
 
     @property
@@ -119,21 +139,19 @@ class HeatzyPiloteV1Thermostat(HeatzyThermostat):
     def preset_mode(self) -> str:
         """Return the current preset mode, e.g., home, away, temp."""
         return self.HEATZY_TO_HA_STATE.get(
-            self.coordinator.data[self.unique_id].get("attr", {}).get("mode")
+            self.coordinator.data[self.unique_id].get(CONF_ATTR, {}).get(CONF_MODE)
         )
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set new preset mode."""
         try:
-            await self.coordinator.heatzy_client.async_control_device(
+            await self.coordinator.api.async_control_device(
                 self.unique_id,
                 {"raw": self.HA_TO_HEATZY_STATE.get(preset_mode)},
             )
             await self.coordinator.async_request_refresh()
         except HeatzyException as error:
-            _LOGGER.error(
-                "Set preset mode (%s) %s (%s)", preset_mode, error, self.name
-            )
+            _LOGGER.error("Set preset mode (%s) %s (%s)", preset_mode, error, self.name)
 
 
 class HeatzyPiloteV2Thermostat(HeatzyThermostat):
@@ -159,21 +177,19 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
     def preset_mode(self) -> str:
         """Return the current preset mode, e.g., home, away, temp."""
         return self.HEATZY_TO_HA_STATE.get(
-            self.coordinator.data[self.unique_id].get("attr", {}).get("mode")
+            self.coordinator.data[self.unique_id].get(CONF_ATTR, {}).get(CONF_MODE)
         )
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set new preset mode."""
         try:
-            await self.coordinator.heatzy_client.async_control_device(
+            await self.coordinator.api.async_control_device(
                 self.unique_id,
-                {"attrs": {"mode": self.HA_TO_HEATZY_STATE.get(preset_mode)}},
+                {CONF_ATTRS: {CONF_MODE: self.HA_TO_HEATZY_STATE.get(preset_mode)}},
             )
             await self.coordinator.async_request_refresh()
         except HeatzyException as error:
-            _LOGGER.error(
-                "Set preset mode (%s) %s (%s)", preset_mode, error, self.name
-            )
+            _LOGGER.error("Set preset mode (%s) %s (%s)", preset_mode, error, self.name)
 
 
 class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
@@ -185,10 +201,10 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
     def current_temperature(self) -> float:
         """Return current temperature."""
         cur_tempH = (
-            self.coordinator.data[self.unique_id].get("attr", {}).get("cur_tempH")
+            self.coordinator.data[self.unique_id].get(CONF_ATTR, {}).get(CUR_TEMP_H)
         )
         cur_tempL = (
-            self.coordinator.data[self.unique_id].get("attr", {}).get("cur_tempL")
+            self.coordinator.data[self.unique_id].get(CONF_ATTR, {}).get(CUR_TEMP_L)
         )
         return (cur_tempL + (cur_tempH * 255)) / 10
 
@@ -196,10 +212,10 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
     def target_temperature_high(self) -> float:
         """Return comfort temperature."""
         cft_tempH = (
-            self.coordinator.data[self.unique_id].get("attr", {}).get("cft_tempH", 0)
+            self.coordinator.data[self.unique_id].get(CONF_ATTR, {}).get(CFT_TEMP_H, 0)
         )
         cft_tempL = (
-            self.coordinator.data[self.unique_id].get("attr", {}).get("cft_tempL", 0)
+            self.coordinator.data[self.unique_id].get(CONF_ATTR, {}).get(CFT_TEMP_L, 0)
         )
         return (cft_tempL + (cft_tempH * 255)) / 10
 
@@ -207,10 +223,10 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
     def target_temperature_low(self) -> float:
         """Return comfort temperature."""
         eco_tempH = (
-            self.coordinator.data[self.unique_id].get("attr", {}).get("eco_tempH", 0)
+            self.coordinator.data[self.unique_id].get(CONF_ATTR, {}).get(ECO_TEMP_H, 0)
         )
         eco_tempL = (
-            self.coordinator.data[self.unique_id].get("attr", {}).get("eco_tempL", 0)
+            self.coordinator.data[self.unique_id].get(CONF_ATTR, {}).get(ECO_TEMP_L, 0)
         )
         return (eco_tempL + (eco_tempH * 255)) / 10
 
@@ -225,16 +241,20 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
         b_temp_cft = int(temp_cft * 10)
         b_temp_eco = int(temp_eco * 10)
 
-        self.coordinator.data[self.unique_id].get("attr", {})["eco_tempL"] = b_temp_eco
-        self.coordinator.data[self.unique_id].get("attr", {})["cft_tempL"] = b_temp_cft
+        self.coordinator.data[self.unique_id].get(CONF_ATTR, {})[
+            ECO_TEMP_L
+        ] = b_temp_eco
+        self.coordinator.data[self.unique_id].get(CONF_ATTR, {})[
+            CFT_TEMP_L
+        ] = b_temp_cft
 
         try:
-            await self.coordinator.heatzy_client.async_control_device(
+            await self.coordinator.api.async_control_device(
                 self.unique_id,
                 {
-                    "attrs": {
-                        "cft_tempL": b_temp_cft,
-                        "eco_tempL": b_temp_eco,
+                    CONF_ATTRS: {
+                        CFT_TEMP_L: b_temp_cft,
+                        ECO_TEMP_L: b_temp_eco,
                     }
                 },
             )
@@ -245,8 +265,8 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
     async def async_turn_on(self) -> str:
         """Turn device on."""
         try:
-            await self.coordinator.heatzy_client.async_control_device(
-                self.unique_id, {"attrs": {"on_off": 1}}
+            await self.coordinator.api.async_control_device(
+                self.unique_id, {CONF_ATTRS: {CONF_ON_OFF: 1}}
             )
             await self.coordinator.async_request_refresh()
         except HeatzyException as error:
@@ -255,8 +275,8 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
     async def async_turn_off(self) -> str:
         """Turn device off."""
         try:
-            await self.coordinator.heatzy_client.async_control_device(
-                self.unique_id, {"attrs": {"on_off": 0}}
+            await self.coordinator.api.async_control_device(
+                self.unique_id, {CONF_ATTRS: {CONF_ON_OFF: 0}}
             )
             await self.coordinator.async_request_refresh()
         except HeatzyException as error:
@@ -265,6 +285,9 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
     @property
     def hvac_mode(self):
         """Return hvac operation ie. heat, cool mode."""
-        if self.coordinator.data[self.unique_id].get("attr", {}).get("on_off") == 0:
+        if (
+            self.coordinator.data[self.unique_id].get(CONF_ATTR, {}).get(CONF_ON_OFF)
+            == 0
+        ):
             return HVACMode.OFF
         return HVACMode.HEAT
