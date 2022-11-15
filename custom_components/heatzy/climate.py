@@ -388,6 +388,8 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
     def target_temperature(self):
         """Return target temperature for mode."""
         # Target temp is set to Low/High/Away value according to the current [preset] mode
+        if self.hvac_mode == HVACMode.OFF:
+            return None
         if self.preset_mode == PRESET_ECO:
             return self.target_temperature_low
         if self.preset_mode == PRESET_COMFORT:
