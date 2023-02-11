@@ -19,11 +19,12 @@ ECO_TEMP_H = "eco_tempH"
 ECO_TEMP_L = "eco_tempL"
 PLATFORMS = ["climate", "switch"]
 
-PILOTEV1 = ["9420ae048da545c88fc6274d204dd25f"]
-PILOTEV2 = [
+PILOTE_V1 = ["9420ae048da545c88fc6274d204dd25f"]
+PILOTE_V2 = [
     "51d16c22a5f74280bc3cfe9ebcdc6402",
     "b9a67b6ce24b437d9794103fd317e627",
     "4fc968a21e7243b390e9ede6f1c6465d",
+    "46409c7f29d4411c85a3a46e5ee3703e",
 ]
 GLOW = ["2fd622e45283470f9e27e8e6167d7533"]
 ELEC_PRO_SOC = ["b8c6657b66c34148b4dee64d615cefc7"]

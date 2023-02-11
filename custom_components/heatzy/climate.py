@@ -49,8 +49,8 @@ from .const import (
     ELEC_PRO_SOC,
     FROST_TEMP,
     GLOW,
-    PILOTEV1,
-    PILOTEV2,
+    PILOTE_V1,
+    PILOTE_V2,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -64,9 +64,9 @@ async def async_setup_entry(
     entities = []
     for unique_id, device in coordinator.data.items():
         product_key = device.get(CONF_PRODUCT_KEY)
-        if product_key in PILOTEV1:
+        if product_key in PILOTE_V1:
             entities.append(HeatzyPiloteV1Thermostat(coordinator, unique_id))
-        elif product_key in PILOTEV2 or product_key in ELEC_PRO_SOC:
+        elif product_key in PILOTE_V2 or product_key in ELEC_PRO_SOC:
             entities.append(HeatzyPiloteV2Thermostat(coordinator, unique_id))
         elif product_key in GLOW:
             entities.append(Glowv1Thermostat(coordinator, unique_id))
