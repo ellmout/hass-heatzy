@@ -37,22 +37,16 @@ class LockSwitchEntity(CoordinatorEntity[HeatzyDataUpdateCoordinator], SwitchEnt
         """Initialize switch."""
         super().__init__(coordinator)
         self._attr_unique_id = unique_id
-        self._attr_name = "Lock switch {}".format(
-            coordinator.data[unique_id][CONF_ALIAS]
+        self._attr_name = f"Lock switch {coordinator.data[unique_id][CONF_ALIAS]}"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, unique_id)},
+            manufacturer=DOMAIN,
         )
 
     @property
     def is_on(self) -> bool:
         """Return true if switch is on."""
         return self.coordinator.data[self.unique_id].get(CONF_ATTR, {}).get(CONF_LOCK)
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return the device info."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, self.unique_id)},
-            manufacturer=DOMAIN,
-        )
 
     async def async_turn_on(self) -> None:
         """Turn the entity on."""
