@@ -1,9 +1,17 @@
 """Climate sensors for Heatzy."""
 import logging
+import time
 
 from heatzypy.exception import HeatzyException
 
+#BRAGITMAN: fixed imports
 from homeassistant.components.climate import (
+    ClimateEntity,
+    ClimateEntityFeature,
+    HVACMode,
+    HVACAction,
+)
+from homeassistant.components.climate.const import (
     ATTR_TARGET_TEMP_HIGH,
     ATTR_TARGET_TEMP_LOW,
     PRESET_AWAY,
@@ -13,10 +21,6 @@ from homeassistant.components.climate import (
     SUPPORT_PRESET_MODE,
     SUPPORT_TARGET_TEMPERATURE,
     SUPPORT_TARGET_TEMPERATURE_RANGE,
-    ClimateEntity,
-    ClimateEntityFeature,
-    HVACAction,
-    HVACMode,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import TEMP_CELSIUS
@@ -225,6 +229,7 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
         """Turn device on."""
         try:
             _LOGGER.debug("Turn on %s", self.HA_TO_HEATZY_STATE[PRESET_COMFORT])
+            #BRAGITMAN: Have to turn off timer and vacation mode first in a separate call to updating Preset Mode.  And need a small delay between calls so hopefully Heatzy processes in correct order
             await self.coordinator.api.async_control_device(
                 self.unique_id,
                 {
@@ -232,6 +237,14 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
                         CONF_DEROG_MODE: 0,
                         CONF_DEROG_TIME: 0,
                         CONF_TIMER_SWITCH: 0,
+                    }
+                },
+            )
+            time.sleep(2)
+            await self.coordinator.api.async_control_device(
+                self.unique_id,
+                {
+                    CONF_ATTRS: {
                         CONF_MODE: self.HA_TO_HEATZY_STATE[PRESET_COMFORT],
                     }
                 },
@@ -243,7 +256,7 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
     async def async_turn_off(self) -> str:
         """Turn device on."""
         try:
-            _LOGGER.debug("Turn off %s", self.HEATZY_STOP)
+            #BRAGITMAN: Have to turn off timer and vacation mode first in a separate call to updating Preset Mode.  And need a small delay between calls so hopefully Heatzy processes in correct order
             await self.coordinator.api.async_control_device(
                 self.unique_id,
                 {
@@ -251,10 +264,19 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
                         CONF_DEROG_MODE: 0,
                         CONF_DEROG_TIME: 0,
                         CONF_TIMER_SWITCH: 0,
+                    }
+                },
+            )
+            time.sleep(2)
+            await self.coordinator.api.async_control_device(
+                self.unique_id,
+                {
+                    CONF_ATTRS: {
                         CONF_MODE: self.HEATZY_STOP,
                     }
                 },
             )
+            _LOGGER.debug("Turn off %s", self.HEATZY_STOP)
             await self.coordinator.async_request_refresh()
         except HeatzyException as error:
             _LOGGER.error("Error Turn on %s (%s)", self.name, error)
@@ -280,16 +302,17 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set new preset mode."""
         _attr = self.coordinator.data[self.unique_id].get(CONF_ATTR, {})
+        #BRAGITMAN: Removed CONF_DEROG_MODE and  CONF_DEROG_TIME attributes, these are only included if in Vacation mode
         config = {
             CONF_ATTRS: {
-                CONF_DEROG_MODE: 0,
-                CONF_DEROG_TIME: 0,
                 CONF_MODE: self.HA_TO_HEATZY_STATE.get(preset_mode),
             }
         }
         # If in VACATION mode then as well as setting preset mode we also stop the VACATION mode
-        if _attr.get(CONF_DEROG_MODE) == 2:
-            config[CONF_ATTRS].update({CONF_DEROG_MODE: 0})
+        if _attr.get(CONF_DEROG_MODE) == 1:
+            config[CONF_ATTRS].update({CONF_DEROG_MODE: 0,
+                                       CONF_DEROG_TIME: 0
+                                      })
         try:
             await self.coordinator.api.async_control_device(self.unique_id, config)
             await self.coordinator.async_request_refresh()
@@ -365,6 +388,8 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
     def target_temperature(self):
         """Return target temperature for mode."""
         # Target temp is set to Low/High/Away value according to the current [preset] mode
+        if self.hvac_mode == HVACMode.OFF:
+            return None
         if self.preset_mode == PRESET_ECO:
             return self.target_temperature_low
         if self.preset_mode == PRESET_COMFORT:
@@ -398,11 +423,11 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
         # When turning ON ensure PROGRAM and VACATION mode are OFF
         try:
             await self.coordinator.api.async_control_device(
+                #BRAGITMAN: Removed preset mode from update.  When turning on it will now remain the same preset mode.  e.g. If HA shows "Off - Eco", turning on will now change it to "On - Eco"
                 self.unique_id,
                 {
                     CONF_ATTRS: {
                         CONF_ON_OFF: 1,
-                        CONF_MODE: self.HA_TO_HEATZY_STATE[PRESET_COMFORT],
                         CONF_DEROG_MODE: 0,
                     }
                 },
