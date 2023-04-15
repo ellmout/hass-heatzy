@@ -47,4 +47,4 @@ class HeatzyDataUpdateCoordinator(DataUpdateCoordinator):
         except AuthenticationFailed as error:
             raise ConfigEntryAuthFailed from error
         except HeatzyException as error:
-            raise UpdateFailed(error)
+            raise UpdateFailed(error) from error
