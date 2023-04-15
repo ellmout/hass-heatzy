@@ -16,10 +16,7 @@ from homeassistant.components.climate.const import (
     PRESET_AWAY,
     PRESET_COMFORT,
     PRESET_ECO,
-    PRESET_NONE,
-    SUPPORT_PRESET_MODE,
-    SUPPORT_TARGET_TEMPERATURE,
-    SUPPORT_TARGET_TEMPERATURE_RANGE,
+    # PRESET_NONE,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import TEMP_CELSIUS
@@ -157,13 +154,13 @@ class HeatzyPiloteV1Thermostat(HeatzyThermostat):
         "\u8212\u9002": PRESET_COMFORT,
         "\u7ecf\u6d4e": PRESET_ECO,
         "\u89e3\u51bb": PRESET_AWAY,
-        "\u505c\u6b62": PRESET_NONE,
+        # "\u505c\u6b62": PRESET_NONE,
     }
     HA_TO_HEATZY_STATE = {
         PRESET_COMFORT: [1, 1, 0],
         PRESET_ECO: [1, 1, 1],
         PRESET_AWAY: [1, 1, 2],
-        PRESET_NONE: [1, 1, 3],
+        # PRESET_NONE: [1, 1, 3],
     }
 
     HEATZY_STOP = "\u505c\u6b62"
@@ -327,9 +324,9 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
     # spell-checker:enable
 
     _attr_supported_features = (
-        SUPPORT_PRESET_MODE
-        | SUPPORT_TARGET_TEMPERATURE_RANGE
-        | SUPPORT_TARGET_TEMPERATURE
+        ClimateEntityFeature.PRESET_MODE
+        | ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
+        | ClimateEntityFeature.TARGET_TEMPERATURE
     )
 
     @property
