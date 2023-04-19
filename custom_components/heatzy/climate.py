@@ -16,7 +16,7 @@ from homeassistant.components.climate.const import (
     PRESET_AWAY,
     PRESET_COMFORT,
     PRESET_ECO,
-    # PRESET_NONE,
+    PRESET_NONE,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import TEMP_CELSIUS
@@ -131,11 +131,7 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
 
     async def async_turn_off(self) -> None:
         """Turn device off."""
-        await self.async_set_preset_mode(self.HEATZY_STOP)
-
-    async def async_turn_auto(self) -> None:
-        """Turn auto."""
-        raise NotImplementedError
+        await self.async_set_preset_mode(PRESET_NONE)
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> bool:
         """Set new hvac mode."""
@@ -154,13 +150,13 @@ class HeatzyPiloteV1Thermostat(HeatzyThermostat):
         "\u8212\u9002": PRESET_COMFORT,
         "\u7ecf\u6d4e": PRESET_ECO,
         "\u89e3\u51bb": PRESET_AWAY,
-        # "\u505c\u6b62": PRESET_NONE,
+        "\u505c\u6b62": PRESET_NONE,
     }
     HA_TO_HEATZY_STATE = {
         PRESET_COMFORT: [1, 1, 0],
         PRESET_ECO: [1, 1, 1],
         PRESET_AWAY: [1, 1, 2],
-        # PRESET_NONE: [1, 1, 3],
+        PRESET_NONE: [1, 1, 3],
     }
 
     HEATZY_STOP = "\u505c\u6b62"
