@@ -193,7 +193,7 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
             if preset_mode == PRESET_BOOST:
                 await self.coordinator.api.async_control_device(
                     self.unique_id,
-                    {CONF_ATTRS: {CONF_MODE: PRESET_COMFORT, CONF_ATTR_DEROG: CONF_BOOST_DEROG_VALUE, CONF_ATTR_DEROG_TIME: CONF_BOOST_DEROG_TIME}},
+                    {CONF_ATTRS: {CONF_MODE: self.HA_TO_HEATZY_STATE.get(PRESET_COMFORT), CONF_ATTR_DEROG: CONF_BOOST_DEROG_VALUE, CONF_ATTR_DEROG_TIME: CONF_BOOST_DEROG_TIME}},
                 )
             else:
                 await self.coordinator.api.async_control_device(
