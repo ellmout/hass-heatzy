@@ -1,13 +1,13 @@
 {
     "domain": "heatzy",
     "name": "Heatzy",
-    "codeowners": ["@cyr-ius"],
+    "codeowners": ["@cyr-ius", "@ellmout"],
     "config_flow": true,
     "dependencies": [],
-    "documentation": "https://github.com/cyr-ius/hass-heatzy",
+    "documentation": "https://github.com/ellmout/hass-heatzy",
     "iot_class": "cloud_polling",
-    "issue_tracker": "https://github.com/cyr-ius/hass-heatzy/issues",
+    "issue_tracker": "https://github.com/ellmout/hass-heatzy/issues",
     "loggers": ["heatzypy"],
     "requirements": ["heatzypy==2.1.1"],
-    "version": "5.7.1"
+    "version": "5.9.0"
 }

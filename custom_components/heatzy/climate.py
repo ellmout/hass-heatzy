@@ -14,6 +14,7 @@ from homeassistant.components.climate.const import (
     PRESET_COMFORT,
     PRESET_ECO,
     PRESET_NONE,
+    PRESET_BOOST,
     SUPPORT_PRESET_MODE,
     SUPPORT_TARGET_TEMPERATURE_RANGE,
 )
@@ -30,6 +31,10 @@ from .const import (
     CFT_TEMP_L,
     CONF_ALIAS,
     CONF_ATTR,
+    CONF_ATTR_DEROG,
+    CONF_ATTR_DEROG_TIME,
+    CONF_BOOST_DEROG_VALUE,
+    CONF_BOOST_DEROG_TIME,
     CONF_MODE,
     CONF_MODEL,
     CONF_ON_OFF,
@@ -48,7 +53,7 @@ from .const import (
 )
 
 MODE_LIST = [HVACMode.HEAT, HVACMode.OFF]
-PRESET_LIST = [PRESET_NONE, PRESET_COMFORT, PRESET_ECO, PRESET_AWAY]
+PRESET_LIST = [PRESET_NONE, PRESET_COMFORT, PRESET_ECO, PRESET_AWAY, PRESET_BOOST]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -176,6 +181,8 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
     @property
     def preset_mode(self) -> str:
         """Return the current preset mode, e.g., home, away, temp."""
+        if self.coordinator.data[self.unique_id].get(CONF_ATTR, {}).get(CONF_ATTR_DEROG) == CONF_BOOST_DEROG_VALUE:
+            return PRESET_BOOST
         return self.HEATZY_TO_HA_STATE.get(
             self.coordinator.data[self.unique_id].get(CONF_ATTR, {}).get(CONF_MODE)
         )
@@ -183,10 +190,16 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set new preset mode."""
         try:
-            await self.coordinator.api.async_control_device(
-                self.unique_id,
-                {CONF_ATTRS: {CONF_MODE: self.HA_TO_HEATZY_STATE.get(preset_mode)}},
-            )
+            if preset_mode == PRESET_BOOST:
+                await self.coordinator.api.async_control_device(
+                    self.unique_id,
+                    {CONF_ATTRS: {CONF_ATTR_DEROG: CONF_BOOST_DEROG_VALUE, CONF_ATTR_DEROG_TIME: CONF_BOOST_DEROG_TIME}},
+                )
+            else:
+                await self.coordinator.api.async_control_device(
+                    self.unique_id,
+                    {CONF_ATTRS: {CONF_MODE: self.HA_TO_HEATZY_STATE.get(preset_mode)}},
+                )
             await self.coordinator.async_request_refresh()
         except HeatzyException as error:
             _LOGGER.error("Set preset mode (%s) %s (%s)", preset_mode, error, self.name)
