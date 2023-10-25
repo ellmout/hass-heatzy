@@ -5,6 +5,7 @@ from datetime import timedelta
 import async_timeout
 from heatzypy import HeatzyClient
 from heatzypy.exception import AuthenticationFailed, HeatzyException
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant

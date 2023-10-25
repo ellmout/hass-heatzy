@@ -5,21 +5,19 @@ import logging
 from heatzypy.exception import HeatzyException
 
 from homeassistant.components.climate import (
-    ClimateEntity,
-    ClimateEntityFeature,
-    HVACAction,
-    HVACMode,
-)
-from homeassistant.components.climate.const import (
     ATTR_TARGET_TEMP_HIGH,
     ATTR_TARGET_TEMP_LOW,
     PRESET_AWAY,
     PRESET_COMFORT,
     PRESET_ECO,
     PRESET_NONE,
+    ClimateEntity,
+    ClimateEntityFeature,
+    HVACAction,
+    HVACMode,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import TEMP_CELSIUS
+from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -79,10 +77,10 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
     _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF, HVACMode.AUTO]
     _attr_preset_modes = [PRESET_COMFORT, PRESET_ECO, PRESET_AWAY]
     _attr_supported_features = ClimateEntityFeature.PRESET_MODE
-    _attr_temperature_unit = TEMP_CELSIUS
+    _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: HeatzyDataUpdateCoordinator, unique_id):
+    def __init__(self, coordinator: HeatzyDataUpdateCoordinator, unique_id) -> None:
         """Init."""
         super().__init__(coordinator)
         self._attr_unique_id = unique_id
