@@ -327,8 +327,8 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
     def current_temperature(self) -> float:
         """Return current temperature."""
         _attr = self.coordinator.data[self.unique_id].get(CONF_ATTR, {})
-        cur_tempH = _attr.get(CUR_TEMP_H)
-        cur_tempL = _attr.get(CUR_TEMP_L)
+        cur_tempH = _attr.get(CUR_TEMP_H, 0)
+        cur_tempL = _attr.get(CUR_TEMP_L, 0)
         return (cur_tempL + (cur_tempH * 256)) / 10
 
     @property
