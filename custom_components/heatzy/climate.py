@@ -47,7 +47,6 @@ from .const import (
     DOMAIN,
     ECO_TEMP_H,
     ECO_TEMP_L,
-    ELEC_PRO_SOC,
     FROST_TEMP,
     GLOW,
     PILOTE_V1,
@@ -67,7 +66,7 @@ async def async_setup_entry(
         product_key = device.get(CONF_PRODUCT_KEY)
         if product_key in PILOTE_V1:
             entities.append(HeatzyPiloteV1Thermostat(coordinator, unique_id))
-        elif product_key in PILOTE_V2 or product_key in ELEC_PRO_SOC:
+        elif product_key in PILOTE_V2:
             entities.append(HeatzyPiloteV2Thermostat(coordinator, unique_id))
         elif product_key in GLOW:
             entities.append(Glowv1Thermostat(coordinator, unique_id))
