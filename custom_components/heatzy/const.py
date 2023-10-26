@@ -35,6 +35,6 @@ PILOTE_V2 = [
 ]
 GLOW = [
     "2fd622e45283470f9e27e8e6167d7533",
-    "bb10d064f8de409db633b750faa22a52"  # ONYX
+    "bb10d064f8de409db633b750faa22a52",  # ONYX
     "46409c7f29d4411c85a3a46e5ee3703e"
 ]
