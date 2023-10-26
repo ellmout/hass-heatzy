@@ -1,4 +1,6 @@
 """Config flow to configure Heatzy."""
+from __future__ import annotations
+
 import logging
 
 import voluptuous as vol
