@@ -6,7 +6,6 @@ import logging
 from typing import Any
 
 from heatzypy.exception import HeatzyException
-
 from homeassistant.components.climate import (
     ATTR_TARGET_TEMP_HIGH,
     ATTR_TARGET_TEMP_LOW,
@@ -28,14 +27,18 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import HeatzyDataUpdateCoordinator
 from .const import (
+    BLOOM,
     CFT_TEMP_H,
     CFT_TEMP_L,
     CONF_ALIAS,
     CONF_ATTR,
     CONF_ATTRS,
+    CONF_COM_TEMP,
     CONF_CUR_MODE,
+    CONF_CUR_TEMP,
     CONF_DEROG_MODE,
     CONF_DEROG_TIME,
+    CONF_ECO_TEMP,
     CONF_MODE,
     CONF_MODEL,
     CONF_ON_OFF,
@@ -70,6 +73,8 @@ async def async_setup_entry(
             entities.append(HeatzyPiloteV2Thermostat(coordinator, unique_id))
         elif product_key in GLOW:
             entities.append(Glowv1Thermostat(coordinator, unique_id))
+        elif product_key in BLOOM:
+            entities.append(Bloomv1Thermostat(coordinator, unique_id))
     async_add_entities(entities)
 
 
@@ -469,3 +474,85 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
             await self.coordinator.async_request_refresh()
         except HeatzyException as error:
             _LOGGER.error("Set preset mode (%s) %s (%s)", preset_mode, error, self.name)
+
+
+class Bloomv1Thermostat(HeatzyPiloteV2Thermostat):
+    """Glow."""
+
+    # DEROG_MODE = 1 is PROGRAM Mode
+    # DEROG_MODE = 2 is VACATION Mode
+
+    # spell-checker:disable
+    HA_TO_HEATZY_STATE = {
+        PRESET_COMFORT: "cft",
+        PRESET_ECO: "eco",
+        PRESET_AWAY: "fro",
+    }
+
+    HEATZY_TO_HA_STATE = {0: PRESET_COMFORT, 1: PRESET_ECO, 2: PRESET_AWAY}
+    # spell-checker:enable
+
+    _attr_supported_features = (
+        ClimateEntityFeature.PRESET_MODE
+        | ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
+        | ClimateEntityFeature.TARGET_TEMPERATURE
+    )
+
+    @property
+    def current_temperature(self) -> float:
+        """Return current temperature."""
+        return self._attr.get(CONF_CUR_TEMP)
+
+    @property
+    def target_temperature_high(self) -> float:
+        """Return comfort temperature."""
+        return self._attr.get(CONF_COM_TEMP)
+
+    @property
+    def target_temperature_low(self) -> float:
+        """Return echo temperature."""
+        return self._attr.get(CONF_ECO_TEMP)
+
+    @property
+    def target_temperature(self) -> float:
+        """Return target temperature for mode."""
+        # Target temp is set to value according to the current [preset] mode
+        if self.hvac_mode == HVACMode.OFF:
+            return None
+        if self.preset_mode == PRESET_ECO:
+            return self.target_temperature_low
+        if self.preset_mode == PRESET_COMFORT:
+            return self.target_temperature_high
+        if self.preset_mode == PRESET_AWAY:
+            return FROST_TEMP
+
+    @property
+    def hvac_action(self) -> HVACAction:
+        """Return hvac action ie. heat, cool mode."""
+        # If OFF then set HVAC Action to OFF
+        if self.hvac_mode == HVACMode.OFF:
+            return HVACAction.OFF
+        # If Target temp is higher than current temp then set HVAC Action to HEATING
+        elif self.target_temperature > self.current_temperature:
+            return HVACAction.HEATING
+        # Otherwise set to IDLE
+        return HVACAction.IDLE
+
+    async def async_set_temperature(self, **kwargs: Any) -> None:
+        """Set new target temperature."""
+        temp_eco = kwargs.get(ATTR_TARGET_TEMP_LOW)
+        temp_cft = kwargs.get(ATTR_TARGET_TEMP_HIGH)
+        if (temp_eco or temp_cft) is None:
+            return
+
+        self._attr[CONF_ECO_TEMP] = temp_eco
+        self._attr[CONF_COM_TEMP] = temp_cft
+
+        try:
+            await self.coordinator.api.async_control_device(
+                self.unique_id,
+                {CONF_ATTRS: {CONF_COM_TEMP: temp_cft, CONF_ECO_TEMP: temp_eco}},
+            )
+            await self.coordinator.async_request_refresh()
+        except HeatzyException as error:
+            _LOGGER.error("Error to set temperature: %s", error)

@@ -5,9 +5,12 @@ CFT_TEMP_L = "cft_tempL"
 CONF_ALIAS = "dev_alias"
 CONF_ATTR = "attr"
 CONF_ATTRS = "attrs"
+CONF_COM_TEMP = "com_temp"
 CONF_CUR_MODE = "cur_mode"
+CONF_CUR_TEMP = "cur_temp"
 CONF_DEROG_MODE = "derog_mode"
 CONF_DEROG_TIME = "derog_time"
+CONF_ECO_TEMP = "eco_temp"
 CONF_LOCK = "lock_switch"
 CONF_MODE = "mode"
 CONF_MODEL = "product_name"
@@ -31,10 +34,10 @@ PILOTE_V2 = [
     "4fc968a21e7243b390e9ede6f1c6465d",
     "46409c7f29d4411c85a3a46e5ee3703e",
     "b8c6657b66c34148b4dee64d615cefc7",  # ELEC_PRO_SOC
-    "480253852d574f11b2d7fbf4460d7a41",  # BLOOM
 ]
 GLOW = [
     "2fd622e45283470f9e27e8e6167d7533",
     "bb10d064f8de409db633b750faa22a52",  # ONYX
-    "46409c7f29d4411c85a3a46e5ee3703e"
+    "46409c7f29d4411c85a3a46e5ee3703e",
 ]
+BLOOM = ["480253852d574f11b2d7fbf4460d7a41"]
