@@ -1,6 +1,9 @@
 """Climate sensors for Heatzy."""
+from __future__ import annotations
+
 import asyncio
 import logging
+from typing import Any
 
 from heatzypy.exception import HeatzyException
 
@@ -79,22 +82,22 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
     _attr_supported_features = ClimateEntityFeature.PRESET_MODE
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_has_entity_name = True
+    _attr_name = None
 
     def __init__(self, coordinator: HeatzyDataUpdateCoordinator, unique_id) -> None:
         """Init."""
         super().__init__(coordinator)
         self._attr_unique_id = unique_id
-        self._attr_name = coordinator.data[unique_id][CONF_ALIAS]
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, unique_id)},
-            name=coordinator.data[unique_id][CONF_ALIAS],
             manufacturer=DOMAIN,
             sw_version=coordinator.data[unique_id].get(CONF_VERSION),
             model=coordinator.data[unique_id].get(CONF_MODEL),
+            name=coordinator.data[unique_id][CONF_ALIAS],
         )
 
     @property
-    def hvac_action(self):
+    def hvac_action(self) -> HVACAction:
         """Return hvac action ie. heat, cool mode."""
         _attr = self.coordinator.data[self.unique_id].get(CONF_ATTR, {})
         action = (
@@ -105,7 +108,7 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
         return action
 
     @property
-    def hvac_mode(self):
+    def hvac_mode(self) -> HVACMode:
         """Return hvac operation ie. heat, cool mode."""
         # If TIMER_SWTICH = 1 then set HVAC Mode to AUTO
         _attr = self.coordinator.data[self.unique_id].get(CONF_ATTR, {})
@@ -170,7 +173,7 @@ class HeatzyPiloteV1Thermostat(HeatzyThermostat):
         except HeatzyException as error:
             _LOGGER.error("Set preset mode (%s) %s (%s)", preset_mode, error, self.name)
 
-    async def async_turn_auto(self) -> str:
+    async def async_turn_auto(self) -> None:
         """Turn device to Program mode."""
         # For PROGRAM Mode we have to set TIMER_SWITCH = 1, but we also ensure VACATION Mode is OFF
         try:
@@ -211,7 +214,7 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
     HEATZY_STOP = "stop"
     # spell-checker:enable
 
-    async def async_turn_on(self) -> str:
+    async def async_turn_on(self) -> None:
         """Turn device on."""
         try:
             _LOGGER.debug("Turn on %s", self.HA_TO_HEATZY_STATE[PRESET_COMFORT])
@@ -238,7 +241,7 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
         except HeatzyException as error:
             _LOGGER.error("Error Turn on %s (%s)", self.name, error)
 
-    async def async_turn_off(self) -> str:
+    async def async_turn_off(self) -> None:
         """Turn device on."""
         try:
             await self.coordinator.api.async_control_device(
@@ -265,7 +268,7 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
         except HeatzyException as error:
             _LOGGER.error("Error Turn on %s (%s)", self.name, error)
 
-    async def async_turn_auto(self) -> str:
+    async def async_turn_auto(self) -> None:
         """Turn device to Program mode."""
         # For PROGRAM Mode we have to set TIMER_SWITCH = 1, but we also ensure VACATION Mode is OFF
         try:
@@ -348,7 +351,7 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
         return (eco_tempL + (eco_tempH * 256)) / 10
 
     @property
-    def hvac_mode(self):
+    def hvac_mode(self) -> HVACMode:
         """Return hvac operation ie. heat, cool mode."""
         _attr = self.coordinator.data[self.unique_id].get(CONF_ATTR, {})
         # If OFF...
@@ -366,7 +369,7 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
         return HVACMode.HEAT
 
     @property
-    def target_temperature(self):
+    def target_temperature(self) -> float:
         """Return target temperature for mode."""
         # Target temp is set to Low/High/Away value according to the current [preset] mode
         if self.hvac_mode == HVACMode.OFF:
@@ -379,7 +382,7 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
             return FROST_TEMP
 
     @property
-    def hvac_action(self):
+    def hvac_action(self) -> HVACAction:
         """Return hvac action ie. heat, cool mode."""
         # If OFF then set HVAC Action to OFF
         if self.hvac_mode == HVACMode.OFF:
@@ -399,7 +402,7 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
         # Use CUR_MODE for mapping to preset mode as this works in PROGRAM mode as well manual mode
         return self.HEATZY_TO_HA_STATE.get(_attr.get(CONF_CUR_MODE))
 
-    async def async_turn_on(self) -> str:
+    async def async_turn_on(self) -> None:
         """Turn device on."""
         # When turning ON ensure PROGRAM and VACATION mode are OFF
         try:
@@ -416,7 +419,7 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
         except HeatzyException as error:
             _LOGGER.error("Error to turn on : %s", error)
 
-    async def async_turn_off(self) -> str:
+    async def async_turn_off(self) -> None:
         """Turn device off."""
         try:
             await self.coordinator.api.async_control_device(
@@ -426,7 +429,7 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
         except HeatzyException as error:
             _LOGGER.error("Error to turn off : %s", error)
 
-    async def async_turn_auto(self) -> str:
+    async def async_turn_auto(self) -> None:
         """Turn device off."""
         # When setting to PROGRAM Mode we also ensure it's turned ON
         try:
@@ -437,7 +440,7 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
         except HeatzyException as error:
             _LOGGER.error("Error to turn off : %s", error)
 
-    async def async_set_temperature(self, **kwargs) -> None:
+    async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature."""
         temp_eco = kwargs.get(ATTR_TARGET_TEMP_LOW)
         temp_cft = kwargs.get(ATTR_TARGET_TEMP_HIGH)

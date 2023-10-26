@@ -1,4 +1,6 @@
 """Sensors for Heatzy."""
+from __future__ import annotations
+
 import logging
 
 from heatzypy.exception import HeatzyException
@@ -10,7 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import HeatzyDataUpdateCoordinator
-from .const import CONF_ALIAS, CONF_ATTR, CONF_ATTRS, DOMAIN, CONF_LOCK
+from .const import CONF_ATTR, CONF_ATTRS, CONF_LOCK, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,16 +34,15 @@ class LockSwitchEntity(CoordinatorEntity[HeatzyDataUpdateCoordinator], SwitchEnt
 
     entity_category = EntityCategory.CONFIG
     _attr_has_entity_name = True
+    _attr_name = None
 
-    def __init__(self, coordinator: HeatzyDataUpdateCoordinator, unique_id: str):
+    def __init__(
+        self, coordinator: HeatzyDataUpdateCoordinator, unique_id: str
+    ) -> None:
         """Initialize switch."""
         super().__init__(coordinator)
         self._attr_unique_id = unique_id
-        self._attr_name = f"Lock switch {coordinator.data[unique_id][CONF_ALIAS]}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, unique_id)},
-            manufacturer=DOMAIN,
-        )
+        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, unique_id)})
 
     @property
     def is_on(self) -> bool:
