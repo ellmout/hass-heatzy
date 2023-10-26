@@ -120,7 +120,7 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
         return HVACMode.HEAT
 
     @property
-    def preset_mode(self) -> str:
+    def preset_mode(self) -> str | None:
         """Return the current preset mode, e.g., home, away, temp."""
         _attr = self.coordinator.data[self.unique_id].get(CONF_ATTR, {})
         return self.HEATZY_TO_HA_STATE.get(_attr.get(CONF_MODE))
