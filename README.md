@@ -17,7 +17,7 @@ There is currently support for the following device types within Home Assistant:
 - Acova Heatzy Elec'Pro
 - Glow by Heatzy
 - Onyx by Heatzy
-
+- Bloom by Heatzy
 
 ## Configuration
 
