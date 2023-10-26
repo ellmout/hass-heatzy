@@ -21,7 +21,7 @@ from homeassistant.components.climate import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfTemperature
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -85,7 +85,7 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
 
     def __init__(self, coordinator: HeatzyDataUpdateCoordinator, unique_id) -> None:
         """Init."""
-        super().__init__(coordinator)
+        super().__init__(coordinator, context=unique_id)
         self._attr_unique_id = unique_id
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, unique_id)},
@@ -94,14 +94,14 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
             model=coordinator.data[unique_id].get(CONF_MODEL),
             name=coordinator.data[unique_id][CONF_ALIAS],
         )
+        self._attr = coordinator.data[unique_id].get(CONF_ATTR, {})
 
     @property
     def hvac_action(self) -> HVACAction:
         """Return hvac action ie. heat, cool mode."""
-        _attr = self.coordinator.data[self.unique_id].get(CONF_ATTR, {})
         action = (
             HVACAction.OFF
-            if _attr.get(CONF_MODE) == self.HEATZY_STOP
+            if self._attr.get(CONF_MODE) == self.HEATZY_STOP
             else HVACAction.HEATING
         )
         return action
@@ -110,11 +110,10 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
     def hvac_mode(self) -> HVACMode:
         """Return hvac operation ie. heat, cool mode."""
         # If TIMER_SWTICH = 1 then set HVAC Mode to AUTO
-        _attr = self.coordinator.data[self.unique_id].get(CONF_ATTR, {})
-        if _attr.get(CONF_TIMER_SWITCH) == 1:
+        if self._attr.get(CONF_TIMER_SWITCH) == 1:
             return HVACMode.AUTO
         # If preset mode is NONE set HVAC Mode to OFF
-        elif _attr.get(CONF_MODE) == self.HEATZY_STOP:
+        elif self._attr.get(CONF_MODE) == self.HEATZY_STOP:
             return HVACMode.OFF
         # otherwise set HVAC Mode to HEAT
         return HVACMode.HEAT
@@ -122,8 +121,7 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
     @property
     def preset_mode(self) -> str | None:
         """Return the current preset mode, e.g., home, away, temp."""
-        _attr = self.coordinator.data[self.unique_id].get(CONF_ATTR, {})
-        return self.HEATZY_TO_HA_STATE.get(_attr.get(CONF_MODE))
+        return self.HEATZY_TO_HA_STATE.get(self._attr.get(CONF_MODE))
 
     async def async_turn_on(self) -> None:
         """Turn device on."""
@@ -141,6 +139,12 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
             await self.async_turn_auto()
         elif hvac_mode == HVACMode.HEAT:
             await self.async_turn_on()
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        self._attr = self.coordinator.data[self.unique_id].get(CONF_ATTR, {})
+        self.async_write_ha_state()
 
 
 class HeatzyPiloteV1Thermostat(HeatzyThermostat):
@@ -216,25 +220,24 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
     async def async_turn_on(self) -> None:
         """Turn device on."""
         try:
-            _LOGGER.debug("Turn on %s", self.HA_TO_HEATZY_STATE[PRESET_COMFORT])
+            if (
+                self._attr.get(CONF_DEROG_MODE) == 1
+                or self._attr.get(CONF_TIMER_SWITCH) == 1
+            ):
+                await self.coordinator.api.async_control_device(
+                    self.unique_id,
+                    {
+                        CONF_ATTRS: {
+                            CONF_DEROG_MODE: 0,
+                            CONF_DEROG_TIME: 0,
+                            CONF_TIMER_SWITCH: 0,
+                        }
+                    },
+                )
+                await asyncio.sleep(5)
             await self.coordinator.api.async_control_device(
                 self.unique_id,
-                {
-                    CONF_ATTRS: {
-                        CONF_DEROG_MODE: 0,
-                        CONF_DEROG_TIME: 0,
-                        CONF_TIMER_SWITCH: 0,
-                    }
-                },
-            )
-            await asyncio.sleep(2)
-            await self.coordinator.api.async_control_device(
-                self.unique_id,
-                {
-                    CONF_ATTRS: {
-                        CONF_MODE: self.HA_TO_HEATZY_STATE[PRESET_COMFORT],
-                    }
-                },
+                {CONF_ATTRS: {CONF_MODE: self.HA_TO_HEATZY_STATE[PRESET_COMFORT]}},
             )
             await self.coordinator.async_request_refresh()
         except HeatzyException as error:
@@ -243,24 +246,24 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
     async def async_turn_off(self) -> None:
         """Turn device on."""
         try:
+            if (
+                self._attr.get(CONF_DEROG_MODE) == 1
+                or self._attr.get(CONF_TIMER_SWITCH) == 1
+            ):
+                await self.coordinator.api.async_control_device(
+                    self.unique_id,
+                    {
+                        CONF_ATTRS: {
+                            CONF_DEROG_MODE: 0,
+                            CONF_DEROG_TIME: 0,
+                            CONF_TIMER_SWITCH: 0,
+                        }
+                    },
+                )
+                await asyncio.sleep(5)
             await self.coordinator.api.async_control_device(
                 self.unique_id,
-                {
-                    CONF_ATTRS: {
-                        CONF_DEROG_MODE: 0,
-                        CONF_DEROG_TIME: 0,
-                        CONF_TIMER_SWITCH: 0,
-                    }
-                },
-            )
-            await asyncio.sleep(2)
-            await self.coordinator.api.async_control_device(
-                self.unique_id,
-                {
-                    CONF_ATTRS: {
-                        CONF_MODE: self.HEATZY_STOP,
-                    }
-                },
+                {CONF_ATTRS: {CONF_MODE: self.HEATZY_STOP}},
             )
             _LOGGER.debug("Turn off %s", self.HEATZY_STOP)
             await self.coordinator.async_request_refresh()
@@ -287,14 +290,9 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set new preset mode."""
-        _attr = self.coordinator.data[self.unique_id].get(CONF_ATTR, {})
-        config = {
-            CONF_ATTRS: {
-                CONF_MODE: self.HA_TO_HEATZY_STATE.get(preset_mode),
-            }
-        }
+        config = {CONF_ATTRS: {CONF_MODE: self.HA_TO_HEATZY_STATE.get(preset_mode)}}
         # If in VACATION mode then as well as setting preset mode we also stop the VACATION mode
-        if _attr.get(CONF_DEROG_MODE) == 1:
+        if self._attr.get(CONF_DEROG_MODE) == 1:
             config[CONF_ATTRS].update({CONF_DEROG_MODE: 0, CONF_DEROG_TIME: 0})
         try:
             await self.coordinator.api.async_control_device(self.unique_id, config)
@@ -328,41 +326,37 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
     @property
     def current_temperature(self) -> float:
         """Return current temperature."""
-        _attr = self.coordinator.data[self.unique_id].get(CONF_ATTR, {})
-        cur_tempH = _attr.get(CUR_TEMP_H, 0)
-        cur_tempL = _attr.get(CUR_TEMP_L, 0)
+        cur_tempH = self._attr.get(CUR_TEMP_H, 0)
+        cur_tempL = self._attr.get(CUR_TEMP_L, 0)
         return (cur_tempL + (cur_tempH * 256)) / 10
 
     @property
     def target_temperature_high(self) -> float:
         """Return comfort temperature."""
-        _attr = self.coordinator.data[self.unique_id].get(CONF_ATTR, {})
-        cft_tempH = _attr.get(CFT_TEMP_H, 0)
-        cft_tempL = _attr.get(CFT_TEMP_L, 0)
+        cft_tempH = self._attr.get(CFT_TEMP_H, 0)
+        cft_tempL = self._attr.get(CFT_TEMP_L, 0)
         return (cft_tempL + (cft_tempH * 256)) / 10
 
     @property
     def target_temperature_low(self) -> float:
         """Return comfort temperature."""
-        _attr = self.coordinator.data[self.unique_id].get(CONF_ATTR, {})
-        eco_tempH = _attr.get(ECO_TEMP_H, 0)
-        eco_tempL = _attr.get(ECO_TEMP_L, 0)
+        eco_tempH = self._attr.get(ECO_TEMP_H, 0)
+        eco_tempL = self._attr.get(ECO_TEMP_L, 0)
         return (eco_tempL + (eco_tempH * 256)) / 10
 
     @property
     def hvac_mode(self) -> HVACMode:
         """Return hvac operation ie. heat, cool mode."""
-        _attr = self.coordinator.data[self.unique_id].get(CONF_ATTR, {})
         # If OFF...
-        if _attr.get(CONF_ON_OFF) == 0:
+        if self._attr.get(CONF_ON_OFF) == 0:
             # but in VACATION mode then set HVAC Mode to HEAT
-            if _attr.get(CONF_DEROG_MODE) == 2:
+            if self._attr.get(CONF_DEROG_MODE) == 2:
                 return HVACMode.HEAT
             # otherwise  set HVAC Mode to OFF
             else:
                 return HVACMode.OFF
         # Otherwise if in PROGRAM mode set HVAC Mode to AUTO
-        elif _attr.get(CONF_DEROG_MODE) == 1:
+        elif self._attr.get(CONF_DEROG_MODE) == 1:
             return HVACMode.AUTO
         # Otherwise set HVAC Mode to HEAT
         return HVACMode.HEAT
@@ -395,11 +389,10 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
     @property
     def preset_mode(self) -> str:
         """Return the current preset mode, e.g., home, away, temp."""
-        _attr = self.coordinator.data[self.unique_id].get(CONF_ATTR, {})
-        if _attr.get(CONF_ON_OFF) == 0 and _attr.get(CONF_DEROG_MODE) == 2:
+        if self._attr.get(CONF_ON_OFF) == 0 and self._attr.get(CONF_DEROG_MODE) == 2:
             return PRESET_AWAY
         # Use CUR_MODE for mapping to preset mode as this works in PROGRAM mode as well manual mode
-        return self.HEATZY_TO_HA_STATE.get(_attr.get(CONF_CUR_MODE))
+        return self.HEATZY_TO_HA_STATE.get(self._attr.get(CONF_CUR_MODE))
 
     async def async_turn_on(self) -> None:
         """Turn device on."""
@@ -407,12 +400,7 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
         try:
             await self.coordinator.api.async_control_device(
                 self.unique_id,
-                {
-                    CONF_ATTRS: {
-                        CONF_ON_OFF: 1,
-                        CONF_DEROG_MODE: 0,
-                    }
-                },
+                {CONF_ATTRS: {CONF_ON_OFF: 1, CONF_DEROG_MODE: 0}},
             )
             await self.coordinator.async_request_refresh()
         except HeatzyException as error:
@@ -459,12 +447,7 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
         try:
             await self.coordinator.api.async_control_device(
                 self.unique_id,
-                {
-                    CONF_ATTRS: {
-                        CFT_TEMP_L: b_temp_cft,
-                        ECO_TEMP_L: b_temp_eco,
-                    }
-                },
+                {CONF_ATTRS: {CFT_TEMP_L: b_temp_cft, ECO_TEMP_L: b_temp_eco}},
             )
             await self.coordinator.async_request_refresh()
         except HeatzyException as error:
@@ -472,7 +455,6 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set new preset mode."""
-        _attr = self.coordinator.data[self.unique_id].get(CONF_ATTR, {})
         config = {
             CONF_ATTRS: {
                 CONF_MODE: self.HA_TO_HEATZY_STATE.get(preset_mode),
@@ -480,7 +462,7 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
             }
         }
         # If in VACATION mode then as well as setting preset mode we also stop the VACATION mode
-        if _attr.get(CONF_DEROG_MODE) == 2:
+        if self._attr.get(CONF_DEROG_MODE) == 2:
             config[CONF_ATTRS].update({CONF_DEROG_MODE: 0})
         try:
             await self.coordinator.api.async_control_device(self.unique_id, config)
