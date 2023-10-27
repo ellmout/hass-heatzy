@@ -21,7 +21,7 @@ from homeassistant.components.climate import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -81,6 +81,10 @@ async def async_setup_entry(
 class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEntity):
     """Heatzy climate."""
 
+    HEATZY_STOP: int | str | None = None
+    HEATZY_TO_HA_STATE: dict[int | str, str] = {}
+    HA_TO_HEATZY_STATE: dict[int | str, str | int | list[int]] = {}
+
     _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF, HVACMode.AUTO]
     _attr_preset_modes = [PRESET_COMFORT, PRESET_ECO, PRESET_AWAY]
     _attr_supported_features = ClimateEntityFeature.PRESET_MODE
@@ -88,7 +92,9 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
     _attr_has_entity_name = True
     _attr_name = None
 
-    def __init__(self, coordinator: HeatzyDataUpdateCoordinator, unique_id) -> None:
+    def __init__(
+        self, coordinator: HeatzyDataUpdateCoordinator, unique_id: str
+    ) -> None:
         """Init."""
         super().__init__(coordinator, context=unique_id)
         self._attr_unique_id = unique_id
@@ -118,7 +124,7 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
         if self._attr.get(CONF_TIMER_SWITCH) == 1:
             return HVACMode.AUTO
         # If preset mode is NONE set HVAC Mode to OFF
-        elif self._attr.get(CONF_MODE) == self.HEATZY_STOP:
+        if self._attr.get(CONF_MODE) == self.HEATZY_STOP:
             return HVACMode.OFF
         # otherwise set HVAC Mode to HEAT
         return HVACMode.HEAT
@@ -136,7 +142,11 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
         """Turn device off."""
         await self.async_set_preset_mode(PRESET_NONE)
 
-    async def async_set_hvac_mode(self, hvac_mode: str) -> bool:
+    async def async_turn_auto(self) -> None:
+        """Turn device to Program mode."""
+        raise NotImplementedError()
+
+    async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set new hvac mode."""
         if hvac_mode == HVACMode.OFF:
             await self.async_turn_off()
@@ -170,17 +180,6 @@ class HeatzyPiloteV1Thermostat(HeatzyThermostat):
 
     HEATZY_STOP = "\u505c\u6b62"
 
-    async def async_set_preset_mode(self, preset_mode: str) -> None:
-        """Set new preset mode."""
-        try:
-            await self.coordinator.api.async_control_device(
-                self.unique_id,
-                {"raw": self.HA_TO_HEATZY_STATE.get(preset_mode)},
-            )
-            await self.coordinator.async_request_refresh()
-        except HeatzyException as error:
-            _LOGGER.error("Set preset mode (%s) %s (%s)", preset_mode, error, self.name)
-
     async def async_turn_auto(self) -> None:
         """Turn device to Program mode."""
         # For PROGRAM Mode we have to set TIMER_SWITCH = 1, but we also ensure VACATION Mode is OFF
@@ -199,6 +198,17 @@ class HeatzyPiloteV1Thermostat(HeatzyThermostat):
         except HeatzyException as error:
             _LOGGER.error("Error to turn off : %s (%s)", self.name, error)
 
+    async def async_set_preset_mode(self, preset_mode: str) -> None:
+        """Set new preset mode."""
+        try:
+            await self.coordinator.api.async_control_device(
+                self.unique_id,
+                {"raw": self.HA_TO_HEATZY_STATE.get(preset_mode)},
+            )
+            await self.coordinator.async_request_refresh()
+        except HeatzyException as error:
+            _LOGGER.error("Set preset mode (%s) %s (%s)", preset_mode, error, self.name)
+
 
 class HeatzyPiloteV2Thermostat(HeatzyThermostat):
     """Heaty Pilote v2."""
@@ -206,21 +216,9 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
     # TIMER_SWITCH = 1 is PROGRAM Mode
     # DEROG_MODE = 1 is VACATION Mode
 
-    # spell-checker:disable
-    HEATZY_TO_HA_STATE = {
-        "cft": PRESET_COMFORT,
-        "eco": PRESET_ECO,
-        "fro": PRESET_AWAY,
-    }
-
-    HA_TO_HEATZY_STATE = {
-        PRESET_COMFORT: "cft",
-        PRESET_ECO: "eco",
-        PRESET_AWAY: "fro",
-    }
-
+    HEATZY_TO_HA_STATE = {"cft": PRESET_COMFORT, "eco": PRESET_ECO, "fro": PRESET_AWAY}
+    HA_TO_HEATZY_STATE = {preset: name for (name, preset) in HEATZY_TO_HA_STATE.items()}
     HEATZY_STOP = "stop"
-    # spell-checker:enable
 
     async def async_turn_on(self) -> None:
         """Turn device on."""
@@ -270,7 +268,6 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
                 self.unique_id,
                 {CONF_ATTRS: {CONF_MODE: self.HEATZY_STOP}},
             )
-            _LOGGER.debug("Turn off %s", self.HEATZY_STOP)
             await self.coordinator.async_request_refresh()
         except HeatzyException as error:
             _LOGGER.error("Error Turn on %s (%s)", self.name, error)
@@ -295,7 +292,9 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set new preset mode."""
-        config = {CONF_ATTRS: {CONF_MODE: self.HA_TO_HEATZY_STATE.get(preset_mode)}}
+        config: dict[str, Any] = {
+            CONF_ATTRS: {CONF_MODE: self.HA_TO_HEATZY_STATE.get(preset_mode)}
+        }
         # If in VACATION mode then as well as setting preset mode we also stop the VACATION mode
         if self._attr.get(CONF_DEROG_MODE) == 1:
             config[CONF_ATTRS].update({CONF_DEROG_MODE: 0, CONF_DEROG_TIME: 0})
@@ -311,16 +310,8 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
 
     # DEROG_MODE = 1 is PROGRAM Mode
     # DEROG_MODE = 2 is VACATION Mode
-
-    # spell-checker:disable
-    HA_TO_HEATZY_STATE = {
-        PRESET_COMFORT: "cft",
-        PRESET_ECO: "eco",
-        PRESET_AWAY: "fro",
-    }
-
     HEATZY_TO_HA_STATE = {0: PRESET_COMFORT, 1: PRESET_ECO, 2: PRESET_AWAY}
-    # spell-checker:enable
+    HA_TO_HEATZY_STATE = {PRESET_COMFORT: "cft", PRESET_ECO: "eco", PRESET_AWAY: "fro"}
 
     _attr_supported_features = (
         ClimateEntityFeature.PRESET_MODE
@@ -358,16 +349,15 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
             if self._attr.get(CONF_DEROG_MODE) == 2:
                 return HVACMode.HEAT
             # otherwise  set HVAC Mode to OFF
-            else:
-                return HVACMode.OFF
+            return HVACMode.OFF
         # Otherwise if in PROGRAM mode set HVAC Mode to AUTO
-        elif self._attr.get(CONF_DEROG_MODE) == 1:
+        if self._attr.get(CONF_DEROG_MODE) == 1:
             return HVACMode.AUTO
         # Otherwise set HVAC Mode to HEAT
         return HVACMode.HEAT
 
     @property
-    def target_temperature(self) -> float:
+    def target_temperature(self) -> float | None:
         """Return target temperature for mode."""
         # Target temp is set to Low/High/Away value according to the current [preset] mode
         if self.hvac_mode == HVACMode.OFF:
@@ -378,6 +368,7 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
             return self.target_temperature_high
         if self.preset_mode == PRESET_AWAY:
             return FROST_TEMP
+        return None
 
     @property
     def hvac_action(self) -> HVACAction:
@@ -386,13 +377,16 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
         if self.hvac_mode == HVACMode.OFF:
             return HVACAction.OFF
         # If Target temp is higher than current temp then set HVAC Action to HEATING
-        elif self.target_temperature > self.current_temperature:
+        if (
+            self.target_temperature
+            and self.target_temperature > self.current_temperature
+        ):
             return HVACAction.HEATING
         # Otherwise set to IDLE
         return HVACAction.IDLE
 
     @property
-    def preset_mode(self) -> str:
+    def preset_mode(self) -> str | None:
         """Return the current preset mode, e.g., home, away, temp."""
         if self._attr.get(CONF_ON_OFF) == 0 and self._attr.get(CONF_DEROG_MODE) == 2:
             return PRESET_AWAY
@@ -434,29 +428,25 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature."""
-        temp_eco = kwargs.get(ATTR_TARGET_TEMP_LOW)
-        temp_cft = kwargs.get(ATTR_TARGET_TEMP_HIGH)
-        if (temp_eco or temp_cft) is None:
-            return
+        if (temp_eco := kwargs.get(ATTR_TARGET_TEMP_LOW)) and (
+            temp_cft := kwargs.get(ATTR_TARGET_TEMP_HIGH)
+        ):
+            self._attr[ECO_TEMP_L] = int(temp_eco * 10)
+            self._attr[CFT_TEMP_L] = int(temp_cft * 10)
 
-        b_temp_cft = int(temp_cft * 10)
-        b_temp_eco = int(temp_eco * 10)
-
-        self.coordinator.data[self.unique_id].get(CONF_ATTR, {})[
-            ECO_TEMP_L
-        ] = b_temp_eco
-        self.coordinator.data[self.unique_id].get(CONF_ATTR, {})[
-            CFT_TEMP_L
-        ] = b_temp_cft
-
-        try:
-            await self.coordinator.api.async_control_device(
-                self.unique_id,
-                {CONF_ATTRS: {CFT_TEMP_L: b_temp_cft, ECO_TEMP_L: b_temp_eco}},
-            )
-            await self.coordinator.async_request_refresh()
-        except HeatzyException as error:
-            _LOGGER.error("Error to set temperature: %s", error)
+            try:
+                await self.coordinator.api.async_control_device(
+                    self.unique_id,
+                    {
+                        CONF_ATTRS: {
+                            CFT_TEMP_L: self._attr[CFT_TEMP_L],
+                            ECO_TEMP_L: self._attr[ECO_TEMP_L],
+                        }
+                    },
+                )
+                await self.coordinator.async_request_refresh()
+            except HeatzyException as error:
+                _LOGGER.error("Error to set temperature: %s", error)
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set new preset mode."""
@@ -477,20 +467,7 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
 
 
 class Bloomv1Thermostat(HeatzyPiloteV2Thermostat):
-    """Glow."""
-
-    # DEROG_MODE = 1 is PROGRAM Mode
-    # DEROG_MODE = 2 is VACATION Mode
-
-    # spell-checker:disable
-    HA_TO_HEATZY_STATE = {
-        PRESET_COMFORT: "cft",
-        PRESET_ECO: "eco",
-        PRESET_AWAY: "fro",
-    }
-
-    HEATZY_TO_HA_STATE = {0: PRESET_COMFORT, 1: PRESET_ECO, 2: PRESET_AWAY}
-    # spell-checker:enable
+    """Bloom."""
 
     _attr_supported_features = (
         ClimateEntityFeature.PRESET_MODE
@@ -514,7 +491,7 @@ class Bloomv1Thermostat(HeatzyPiloteV2Thermostat):
         return self._attr.get(CONF_ECO_TEMP)
 
     @property
-    def target_temperature(self) -> float:
+    def target_temperature(self) -> float | None:
         """Return target temperature for mode."""
         # Target temp is set to value according to the current [preset] mode
         if self.hvac_mode == HVACMode.OFF:
@@ -525,6 +502,7 @@ class Bloomv1Thermostat(HeatzyPiloteV2Thermostat):
             return self.target_temperature_high
         if self.preset_mode == PRESET_AWAY:
             return FROST_TEMP
+        return None
 
     @property
     def hvac_action(self) -> HVACAction:
@@ -533,26 +511,27 @@ class Bloomv1Thermostat(HeatzyPiloteV2Thermostat):
         if self.hvac_mode == HVACMode.OFF:
             return HVACAction.OFF
         # If Target temp is higher than current temp then set HVAC Action to HEATING
-        elif self.target_temperature > self.current_temperature:
+        if (
+            self.target_temperature
+            and self.target_temperature > self.current_temperature
+        ):
             return HVACAction.HEATING
         # Otherwise set to IDLE
         return HVACAction.IDLE
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature."""
-        temp_eco = kwargs.get(ATTR_TARGET_TEMP_LOW)
-        temp_cft = kwargs.get(ATTR_TARGET_TEMP_HIGH)
-        if (temp_eco or temp_cft) is None:
-            return
+        if (temp_eco := kwargs.get(ATTR_TARGET_TEMP_LOW)) and (
+            temp_cft := kwargs.get(ATTR_TARGET_TEMP_HIGH)
+        ):
+            self._attr[CONF_ECO_TEMP] = temp_eco
+            self._attr[CONF_COM_TEMP] = temp_cft
 
-        self._attr[CONF_ECO_TEMP] = temp_eco
-        self._attr[CONF_COM_TEMP] = temp_cft
-
-        try:
-            await self.coordinator.api.async_control_device(
-                self.unique_id,
-                {CONF_ATTRS: {CONF_COM_TEMP: temp_cft, CONF_ECO_TEMP: temp_eco}},
-            )
-            await self.coordinator.async_request_refresh()
-        except HeatzyException as error:
-            _LOGGER.error("Error to set temperature: %s", error)
+            try:
+                await self.coordinator.api.async_control_device(
+                    self.unique_id,
+                    {CONF_ATTRS: {CONF_COM_TEMP: temp_cft, CONF_ECO_TEMP: temp_eco}},
+                )
+                await self.coordinator.async_request_refresh()
+            except HeatzyException as error:
+                _LOGGER.error("Error to set temperature: %s", error)
