@@ -315,7 +315,6 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
     _attr_supported_features = (
         ClimateEntityFeature.PRESET_MODE
         | ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
-        | ClimateEntityFeature.TARGET_TEMPERATURE
     )
 
     @property
@@ -471,7 +470,6 @@ class Bloomv1Thermostat(HeatzyPiloteV2Thermostat):
     _attr_supported_features = (
         ClimateEntityFeature.PRESET_MODE
         | ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
-        | ClimateEntityFeature.TARGET_TEMPERATURE
     )
 
     @property
