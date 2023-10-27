@@ -1,4 +1,5 @@
 """Constants for the Heatzy component."""
+ATTR_LOCK_SWITCH = "lock_switch"
 API_TIMEOUT = 30
 CFT_TEMP_H = "cft_tempH"
 CFT_TEMP_L = "cft_tempL"

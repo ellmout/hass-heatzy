@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 
 from heatzypy.exception import HeatzyException
+
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -12,7 +13,15 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import HeatzyDataUpdateCoordinator
-from .const import CONF_ATTR, CONF_ATTRS, CONF_LOCK, DOMAIN
+from .const import (
+    ATTR_LOCK_SWITCH,
+    CONF_ATTR,
+    CONF_ATTRS,
+    CONF_LOCK,
+    CONF_PRODUCT_KEY,
+    DOMAIN,
+    PILOTE_V2,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,10 +31,10 @@ async def async_setup_entry(
 ) -> None:
     """Set the sensor platform."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    entities = [
-        LockSwitchEntity(coordinator, unique_id)
-        for unique_id in coordinator.data.keys()
-    ]
+    entities: list[LockSwitchEntity] = []
+    for unique_id, device in coordinator.data.items():
+        if device.get(CONF_ATTR, {}).get(ATTR_LOCK_SWITCH):
+            entities.append(LockSwitchEntity(coordinator, unique_id))
     async_add_entities(entities)
 
 
