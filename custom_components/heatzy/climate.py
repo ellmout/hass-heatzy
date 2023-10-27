@@ -1,7 +1,6 @@
 """Climate sensors for Heatzy."""
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any
 
@@ -237,7 +236,7 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
                         }
                     },
                 )
-                await asyncio.sleep(5)
+                await self.coordinator.async_request_refresh()
             await self.coordinator.api.async_control_device(
                 self.unique_id,
                 {CONF_ATTRS: {CONF_MODE: self.HA_TO_HEATZY_STATE[PRESET_COMFORT]}},
@@ -263,7 +262,7 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
                         }
                     },
                 )
-                await asyncio.sleep(5)
+                await self.coordinator.async_request_refresh()
             await self.coordinator.api.async_control_device(
                 self.unique_id,
                 {CONF_ATTRS: {CONF_MODE: self.HEATZY_STOP}},
